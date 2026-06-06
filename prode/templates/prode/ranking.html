@@ -1,0 +1,25 @@
+{% extends 'prode/base.html' %}
+{% block content %}
+<h1 class="text-3xl font-extrabold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-amber-500">🏆 Tabla de Posiciones Institucional</h1>
+
+<div class="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700">
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="bg-gray-700 text-gray-300 text-sm font-semibold uppercase">
+                <th class="p-4 text-center w-16">Puesto</th>
+                <th class="p-4">Alumno / Usuario</th>
+                <th class="p-4 text-center w-32">Puntos Totales</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-700 text-sm md:text-base">
+            {% for u in usuarios %}
+            <tr class="hover:bg-gray-750 transition {% if u == user %}bg-indigo-950/40{% endif %}">
+                <td class="p-4 text-center font-bold text-indigo-400">{{ forloop.counter }}°</td>
+                <td class="p-4 font-semibold">{{ u.username }} {% if u == user %}<span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full ml-2">Vos</span>{% endif %}</td>
+                <td class="p-4 text-center font-black text-emerald-400 text-lg">{{ u.puntos_totales|default:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

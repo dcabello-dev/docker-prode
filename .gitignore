@@ -1,0 +1,26 @@
+# Base de datos
+db.sqlite3
+*.sqlite3
+
+# Claves privadas
+clave-prode.pem
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp

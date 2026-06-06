@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: prode_django_app
+    # Mapeamos los archivos de afuera (la Raspy) hacia adentro del contenedor (/app)
+    volumes:
+      - .:/app
+    # Mapeamos el puerto 8000 de la Raspy al puerto 8000 del contenedor
+    ports:
+      - "8000:8000"
+    # Reinicia el contenedor automáticamente si la Raspy se apaga o reinicia
+    restart: always
+    environment:
+      - DJANGO_DEBUG=True

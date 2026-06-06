@@ -1,0 +1,62 @@
+{% extends 'prode/base.html' %}
+{% block content %}
+<h1 class="text-3xl font-extrabold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">🏆 Mi Jugada - Fixture Mundial</h1>
+
+<div class="space-y-6">
+    {% for item in partidos_con_prediccion %}
+    <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-xl flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+        
+        <div class="text-center md:text-left">
+            <span class="px-2 py-1 bg-indigo-900 text-indigo-300 text-xs rounded-full uppercase font-bold">{{ item.objeto.get_fase_display }}</span>
+            <p class="text-gray-400 text-xs mt-1">{{ item.objeto.fecha_hora|date:"d/m/Y H:i" }} hs ({{ item.objeto.zona }})</p>
+        </div>
+
+        <form method="POST" class="flex items-center justify-center space-x-4 w-full md:w-auto">
+            {% csrf_token %}
+            <input type="hidden" name="partido_id" value="{{ item.objeto.id }}">
+
+            <div class="flex items-center space-x-3 w-32 justify-end">
+                <span class="font-semibold text-sm md:text-base hidden sm:inline">{{ item.objeto.equipo_local }}</span>
+                <img src="https://flagcdn.com/w40/{{ item.objeto.codigo_local }}.png" alt="{{ item.objeto.equipo_local }}" class="w-8 h-auto shadow">
+            </div>
+
+            <div class="flex items-center space-x-2 bg-gray-900 p-2 rounded-lg border border-gray-600">
+                <input type="number" name="goles_local_{{ item.objeto.id }}" 
+                       value="{% if item.prediccion %}{{ item.prediccion.goles_local_pred }}{% endif %}"
+                       min="0" class="w-12 bg-gray-800 text-center text-white font-bold rounded p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                       {% if item.objeto.bloqueado %}disabled{% endif %}>
+                <span class="text-gray-500 font-bold">-</span>
+                <input type="number" name="goles_visitante_{{ item.objeto.id }}" 
+                       value="{% if item.prediccion %}{{ item.prediccion.goles_visitante_pred }}{% endif %}"
+                       min="0" class="w-12 bg-gray-800 text-center text-white font-bold rounded p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                       {% if item.objeto.bloqueado %}disabled{% endif %}>
+            </div>
+
+            <div class="flex items-center space-x-3 w-32 justify-start">
+                <img src="https://flagcdn.com/w40/{{ item.objeto.codigo_visitante }}.png" alt="{{ item.objeto.equipo_visitante }}" class="w-8 h-auto shadow">
+                <span class="font-semibold text-sm md:text-base hidden sm:inline">{{ item.objeto.equipo_visitante }}</span>
+            </div>
+
+            <div>
+                {% if item.objeto.bloqueado %}
+                    <span class="text-xs text-red-400 bg-red-950 px-2 py-1 rounded border border-red-800 font-bold">Cerrado</span>
+                {% else %}
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition shadow-md">Guardar</button>
+                {% endif %}
+            </div>
+        </form>
+
+        <div class="text-center md:text-right min-w-[100px]">
+            {% if item.objeto.goles_local_real is not None %}
+                <p class="text-xs text-gray-400">Resultado: {{ item.objeto.goles_local_real }}-{{ item.objeto.goles_visitante_real }}</p>
+                <p class="text-sm font-bold text-green-400">
+                    +{% if item.prediccion %}{{ item.prediccion.puntos_ganados }}{% else %}0{% endif %} pts
+                </p>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-center text-gray-400 py-8">Todavía no hay partidos cargados en el fixture por los administradores.</p>
+    {% endfor %}
+</div>
+{% endblock %}
