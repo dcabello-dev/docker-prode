@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -118,6 +118,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+# Esta línea es obligatoria para AWS / Docker:
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Redirecciones del sistema de autenticación nativo
 LOGIN_REDIRECT_URL = '/'       # Al loguearse, va directo al index (panel del prode)
 LOGOUT_REDIRECT_URL = '/accounts/login/'  # Al desloguearse, vuelve al formulario

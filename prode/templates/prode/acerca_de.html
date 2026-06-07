@@ -1,0 +1,102 @@
+{% extends 'prode/base.html' %}
+{% load static %} {% block content %}
+<div class="space-y-8 animate-fadeIn">
+    
+    <div class="text-center md:text-left border-b border-gray-800 pb-6">
+        <h1 class="text-3xl font-black tracking-tight text-white">
+            Acerca del <span class="text-neonGreen">Proyecto</span>
+        </h1>
+        <p class="text-gray-400 mt-2 text-sm md:text-base">
+            Conocé los detalles, el equipo de desarrollo y las instituciones que hacen posible este Prode Solidario.
+        </p>
+    </div>
+
+    <div class="bg-darkCard border border-gray-800/60 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-xl font-bold text-neonCyan mb-4 flex items-center gap-2">
+            🚀 El Propósito
+        </h2>
+        <p class="text-gray-300 leading-relaxed text-sm md:text-base">
+            Esta plataforma fue desarrollada íntegramente en un entorno académico e institucional con un doble propósito. 
+            Por un lado, aplicar conocimientos reales de ingeniería de software, bases de datos y despliegue en la nube (AWS). 
+            Por el otro, canalizar la pasión futbolera hacia un **fin 100% solidario**, recolectando alimentos no perecederos para los comedores de nuestra comunidad a través de la Mesa de Entrada.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div class="bg-darkCard border border-gray-800/60 rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+                <span class="text-xs font-bold tracking-widest text-neonGreen uppercase">Dirección de Cátedra</span>
+                <h3 class="text-lg font-black text-white mt-1">Lic. Daniel Cabello</h3>
+                <p class="text-gray-400 text-sm mt-2">
+                    Idea original, coordinación general del proyecto y gestión del despliegue productivo en AWS.
+                </p>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-800/50 text-xs text-neonGreen/80 font-medium">
+                👨‍🏫 Docente Titular
+            </div>
+        </div>
+
+        <div class="bg-darkCard border border-gray-800/60 rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+                <span class="text-xs font-bold tracking-widest text-neonCyan uppercase">Equipo de Desarrollo</span>
+                <ul class="mt-2 space-y-1.5">
+                    <li class="text-white font-semibold text-sm flex items-center gap-2">
+                        <span class="text-neonCyan">•</span> Agustina Gonzalez
+                    </li>
+                    <li class="text-white font-semibold text-sm flex items-center gap-2">
+                        <span class="text-neonCyan">•</span> Lautaro Lopez
+                    </li>
+                    <li class="text-gray-400 italic text-xs flex items-center gap-2 pl-3">
+                        y colaboradores de la carrera de Sistemas...
+                    </li>
+                </ul>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-800/50 text-xs text-neonCyan/80 font-medium">
+                💻 Alumnos de Programación
+            </div>
+        </div>
+
+    </div>
+
+    <div class="bg-darkCard border border-gray-800/60 rounded-2xl p-6 shadow-xl text-center">
+        <h2 class="text-lg font-bold text-white mb-2">
+            Apoyo Institucional & <span class="text-neonGreen">Premios</span>
+        </h2>
+        <p class="text-gray-400 text-xs md:text-sm mb-6 max-w-lg mx-auto">
+            Agradecemos profundamente a la institución educativa y al municipio por confiar en nuestra propuesta y aportar los premios para los ganadores del ranking global.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-6 mt-4">
+            
+            <div class="w-full sm:w-auto p-4 bg-darkBg/60 border border-gray-800 hover:border-neonGreen/40 rounded-xl transition duration-300 transform hover:scale-[1.02]">
+                <a href="https://ies9018malargue.edu.ar/" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-3">
+                    <div class="bg-white rounded-lg p-2 flex items-center justify-center w-52 h-24 shadow-inner">
+                        <img src="{% static 'prode/img/logo_ies.png' %}" 
+                             class="max-h-full max-w-full object-contain" 
+                             alt="Logo IES 9-018 Malargüe">
+                    </div>
+                    <span class="text-xs text-gray-500 hover:text-gray-300 underline transition">
+                        ies9018malargue.edu.ar
+                    </span>
+                </a>
+            </div>
+
+            <div class="w-full sm:w-auto p-4 bg-darkBg/60 border border-gray-800 hover:border-neonGreen/40 rounded-xl transition duration-300 transform hover:scale-[1.02]">
+                <a href="https://www.malargue.gov.ar" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-3">
+                    <div class="bg-white rounded-lg p-2 flex items-center justify-center w-52 h-24 shadow-inner">
+                        <img src="{% static 'prode/img/logo_muni.png' %}" 
+                             class="max-h-full max-w-full object-contain" 
+                             alt="Logo Municipalidad de Malargüe">
+                    </div>
+                    <span class="text-xs text-gray-500 hover:text-gray-300 underline transition">
+                        malargue.gov.ar
+                    </span>
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
