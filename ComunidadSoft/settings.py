@@ -103,11 +103,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-ar'
 
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
+
+TIME_ZONE = 'America/Argentina/Buenos_Aires'
 
 USE_TZ = True
 
@@ -119,3 +121,17 @@ STATIC_URL = 'static/'
 # Redirecciones del sistema de autenticación nativo
 LOGIN_REDIRECT_URL = '/'       # Al loguearse, va directo al index (panel del prode)
 LOGOUT_REDIRECT_URL = '/accounts/login/'  # Al desloguearse, vuelve al formulario
+
+# Configuración del backend de correo
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
+# Tus credenciales
+EMAIL_HOST_USER = 'dcabello@mendoza.edu.ar'  # <-- Tu correo
+EMAIL_HOST_PASSWORD = 'cuvzsskdtczrxhde'  # <-- La contraseña de 16 dígitos que generaste (sin espacios)
+
+# (Opcional pero recomendado) Para que Django use esta dirección como remitente
+DEFAULT_FROM_EMAIL = 'dcabello@mendoza.edu.ar'

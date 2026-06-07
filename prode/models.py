@@ -35,6 +35,20 @@ class Partido(models.Model):
         # Devuelve True si faltan menos de 6 horas para el partido
         return timezone.now() >= (self.fecha_hora - timedelta(hours=6))
 
+    # 🔑 AUTOMATIZACIÓN TRIGER: Sobrescribimos el save del partido para actualizar los puntos
+    def save(self, *args, **kwargs):
+        # 1. Primero guardamos los goles reales del partido en la base de datos
+        super().save(*args, **kwargs)
+        
+        # 2. Si el administrador ya cargó el resultado real, recalculamos los prodes de los alumnos
+        if self.goles_local_real is not None and self.goles_visitante_real is not None:
+            # Gracias a tu related_name='predicciones', podemos buscar directo con self.predicciones.all()
+            for prediccion in self.predicciones.all():
+                # Invocamos TU método matemático, actualizamos el campo y guardamos la predicción
+                prediccion.puntos_ganados = prediccion.calcular_puntos()
+                prediccion.save()
+
+
 class Prediccion(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='predicciones')
     partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='predicciones')
