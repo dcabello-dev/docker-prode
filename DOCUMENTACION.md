@@ -271,7 +271,7 @@ Automatización del fixture/resultados y rediseño del modelo de datos:
   `POSTGRES_*`) y las variables `API_FOOTBALL_*`.
 - **Migraciones**: `0001_initial` regenerada (sin datos que preservar).
 
-### `__HASH_SOFASCORE__` — Cambiar el proveedor de datos a SofaScore (APIDOJO)
+### `d5924de` — Cambiar el proveedor de datos a SofaScore (APIDOJO)
 Se reemplaza API-Football por SofaScore (APIDOJO) vía RapidAPI:
 
 - **`settings.py`**: config `RAPIDAPI_*` y `SOFASCORE_*` (en lugar de
