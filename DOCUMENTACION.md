@@ -242,7 +242,7 @@ Migración del motor de base de datos:
 - **`Dockerfile`**: se eliminó el `mkdir /app/data` (era para SQLite).
 - **`mejoras.md`**: punto 10 actualizado (SQLite → PostgreSQL, resuelto).
 
-### `888c9b4` — Integrar API-Football y refactorizar el dominio
+### `17d04d9` — Integrar API-Football y refactorizar el dominio
 Automatización del fixture/resultados y rediseño del modelo de datos:
 
 - **`settings.py`**: `DATABASES` ahora vía `dj-database-url` (`DATABASE_URL`,
