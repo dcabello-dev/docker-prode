@@ -1,0 +1,42 @@
+{
+  "_descripcion": "Fixture de eliminatorias del Mundial 2026 (48 equipos). Editá equipo_local/equipo_visitante a medida que se definan los cruces. Las fechas están en UTC (EDT + 4h). api_id usa el rango 900000+ para no chocar con los IDs reales de SofaScore. Volvé a correr 'python manage.py cargar_fixture' para aplicar los cambios. No incluye los resultados (goles), así que re-correrlo no pisa marcadores ya cargados.",
+  "partidos": [
+    {"api_id": 900073, "fase": "DIECISEISAVOS", "fecha_hora": "2026-06-28T19:00:00Z", "zona": "16avos M73 · Los Angeles", "equipo_local": "2o Grupo A", "equipo_visitante": "2o Grupo B"},
+    {"api_id": 900074, "fase": "DIECISEISAVOS", "fecha_hora": "2026-06-29T20:00:00Z", "zona": "16avos M74 · Boston", "equipo_local": "1o Grupo E", "equipo_visitante": "3o A/B/C/D/F"},
+    {"api_id": 900075, "fase": "DIECISEISAVOS", "fecha_hora": "2026-06-30T01:00:00Z", "zona": "16avos M75 · Monterrey", "equipo_local": "1o Grupo F", "equipo_visitante": "2o Grupo C"},
+    {"api_id": 900076, "fase": "DIECISEISAVOS", "fecha_hora": "2026-06-29T17:00:00Z", "zona": "16avos M76 · Houston", "equipo_local": "1o Grupo C", "equipo_visitante": "2o Grupo F"},
+    {"api_id": 900077, "fase": "DIECISEISAVOS", "fecha_hora": "2026-06-30T21:00:00Z", "zona": "16avos M77 · Nueva York", "equipo_local": "1o Grupo I", "equipo_visitante": "3o C/D/F/G/H"},
+    {"api_id": 900078, "fase": "DIECISEISAVOS", "fecha_hora": "2026-06-30T17:00:00Z", "zona": "16avos M78 · Dallas", "equipo_local": "2o Grupo E", "equipo_visitante": "2o Grupo I"},
+    {"api_id": 900079, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-01T01:00:00Z", "zona": "16avos M79 · Mexico", "equipo_local": "1o Grupo A", "equipo_visitante": "3o C/E/F/H/I"},
+    {"api_id": 900080, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-01T16:00:00Z", "zona": "16avos M80 · Atlanta", "equipo_local": "1o Grupo L", "equipo_visitante": "3o E/H/I/J/K"},
+    {"api_id": 900081, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-02T00:00:00Z", "zona": "16avos M81 · San Francisco", "equipo_local": "1o Grupo D", "equipo_visitante": "3o B/E/F/I/J"},
+    {"api_id": 900082, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-01T20:00:00Z", "zona": "16avos M82 · Seattle", "equipo_local": "1o Grupo G", "equipo_visitante": "3o A/E/H/I/J"},
+    {"api_id": 900083, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-02T23:00:00Z", "zona": "16avos M83 · Toronto", "equipo_local": "2o Grupo K", "equipo_visitante": "2o Grupo L"},
+    {"api_id": 900084, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-02T19:00:00Z", "zona": "16avos M84 · Los Angeles", "equipo_local": "1o Grupo H", "equipo_visitante": "2o Grupo J"},
+    {"api_id": 900085, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-03T01:00:00Z", "zona": "16avos M85 · Vancouver", "equipo_local": "1o Grupo B", "equipo_visitante": "3o E/F/G/I/J"},
+    {"api_id": 900086, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-03T22:00:00Z", "zona": "16avos M86 · Miami", "equipo_local": "1o Grupo J", "equipo_visitante": "2o Grupo H"},
+    {"api_id": 900087, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-04T01:30:00Z", "zona": "16avos M87 · Kansas City", "equipo_local": "1o Grupo K", "equipo_visitante": "3o D/E/I/J/L"},
+    {"api_id": 900088, "fase": "DIECISEISAVOS", "fecha_hora": "2026-07-03T18:00:00Z", "zona": "16avos M88 · Dallas", "equipo_local": "2o Grupo D", "equipo_visitante": "2o Grupo G"},
+
+    {"api_id": 900089, "fase": "OCTAVOS", "fecha_hora": "2026-07-04T21:00:00Z", "zona": "8avos M89 · Filadelfia", "equipo_local": "Ganador M74", "equipo_visitante": "Ganador M77"},
+    {"api_id": 900090, "fase": "OCTAVOS", "fecha_hora": "2026-07-04T17:00:00Z", "zona": "8avos M90 · Houston", "equipo_local": "Ganador M73", "equipo_visitante": "Ganador M75"},
+    {"api_id": 900091, "fase": "OCTAVOS", "fecha_hora": "2026-07-05T20:00:00Z", "zona": "8avos M91 · Nueva York", "equipo_local": "Ganador M76", "equipo_visitante": "Ganador M78"},
+    {"api_id": 900092, "fase": "OCTAVOS", "fecha_hora": "2026-07-06T00:00:00Z", "zona": "8avos M92 · Mexico", "equipo_local": "Ganador M79", "equipo_visitante": "Ganador M80"},
+    {"api_id": 900093, "fase": "OCTAVOS", "fecha_hora": "2026-07-06T19:00:00Z", "zona": "8avos M93 · Dallas", "equipo_local": "Ganador M83", "equipo_visitante": "Ganador M84"},
+    {"api_id": 900094, "fase": "OCTAVOS", "fecha_hora": "2026-07-07T00:00:00Z", "zona": "8avos M94 · Seattle", "equipo_local": "Ganador M81", "equipo_visitante": "Ganador M82"},
+    {"api_id": 900095, "fase": "OCTAVOS", "fecha_hora": "2026-07-06T16:00:00Z", "zona": "8avos M95 · Atlanta", "equipo_local": "Ganador M86", "equipo_visitante": "Ganador M88"},
+    {"api_id": 900096, "fase": "OCTAVOS", "fecha_hora": "2026-07-07T20:00:00Z", "zona": "8avos M96 · Vancouver", "equipo_local": "Ganador M85", "equipo_visitante": "Ganador M87"},
+
+    {"api_id": 900097, "fase": "CUARTOS", "fecha_hora": "2026-07-09T20:00:00Z", "zona": "4tos M97 · Boston", "equipo_local": "Ganador M89", "equipo_visitante": "Ganador M90"},
+    {"api_id": 900098, "fase": "CUARTOS", "fecha_hora": "2026-07-10T19:00:00Z", "zona": "4tos M98 · Los Angeles", "equipo_local": "Ganador M93", "equipo_visitante": "Ganador M94"},
+    {"api_id": 900099, "fase": "CUARTOS", "fecha_hora": "2026-07-11T21:00:00Z", "zona": "4tos M99 · Miami", "equipo_local": "Ganador M91", "equipo_visitante": "Ganador M92"},
+    {"api_id": 900100, "fase": "CUARTOS", "fecha_hora": "2026-07-12T01:00:00Z", "zona": "4tos M100 · Kansas City", "equipo_local": "Ganador M95", "equipo_visitante": "Ganador M96"},
+
+    {"api_id": 900101, "fase": "SEMI", "fecha_hora": "2026-07-14T19:00:00Z", "zona": "Semi M101 · Dallas", "equipo_local": "Ganador M97", "equipo_visitante": "Ganador M98"},
+    {"api_id": 900102, "fase": "SEMI", "fecha_hora": "2026-07-15T19:00:00Z", "zona": "Semi M102 · Atlanta", "equipo_local": "Ganador M99", "equipo_visitante": "Ganador M100"},
+
+    {"api_id": 900103, "fase": "TERCERO", "fecha_hora": "2026-07-18T21:00:00Z", "zona": "3er puesto · Miami", "equipo_local": "Perdedor M101", "equipo_visitante": "Perdedor M102"},
+
+    {"api_id": 900104, "fase": "FINAL", "fecha_hora": "2026-07-19T19:00:00Z", "zona": "Final · MetLife NJ", "equipo_local": "Ganador M101", "equipo_visitante": "Ganador M102"}
+  ]
+}

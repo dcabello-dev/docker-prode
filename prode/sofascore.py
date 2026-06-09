@@ -51,14 +51,13 @@ def list_by_date(fecha: str, inverse: bool = True) -> list[dict]:
     if backend == 'rapidapi':
         return _list_by_date_rapidapi(fecha, inverse)
 
-    # auto: RapidAPI si hay key, con fallback a direct ante 403
+    # auto: RapidAPI si hay key, con fallback a direct ante cualquier error
+    # (403 sin suscripción, 404 si los endpoints de APIDOJO no coinciden, etc.)
     if settings.RAPIDAPI_KEY:
         try:
             return _list_by_date_rapidapi(fecha, inverse)
-        except SofaScoreError as exc:
-            if '403' in str(exc):
-                return _list_by_date_direct(fecha, inverse)
-            raise
+        except SofaScoreError:
+            return _list_by_date_direct(fecha, inverse)
     return _list_by_date_direct(fecha, inverse)
 
 
