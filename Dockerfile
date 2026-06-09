@@ -20,8 +20,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiamos el resto del código
 COPY . /app/
 
-# Carpeta para la base SQLite persistida en un volumen
-RUN mkdir -p /app/data && chmod +x /app/docker/entrypoint.sh
+# Carpeta para la base SQLite persistida en un volumen.
+# sed: por si el script llegó con CRLF (Windows), que rompe el shebang en Linux.
+RUN mkdir -p /app/data \
+    && sed -i 's/\r$//' /app/docker/entrypoint.sh \
+    && chmod +x /app/docker/entrypoint.sh
 
 EXPOSE 8000
 

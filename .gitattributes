@@ -1,0 +1,3 @@
+# Evita CRLF en scripts que corren dentro de contenedores Linux
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf
