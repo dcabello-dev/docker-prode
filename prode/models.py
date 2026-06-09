@@ -35,9 +35,9 @@ class Partido(models.Model):
     equipo_local = models.CharField(max_length=150)
     equipo_visitante = models.CharField(max_length=150)
 
-    # Presentación de banderas: código ISO (flagcdn) y/o logo de la API.
-    codigo_local = models.CharField(max_length=2, blank=True)
-    codigo_visitante = models.CharField(max_length=2, blank=True)
+    # Presentación de banderas: código flagcdn (ISO alpha2 o gb-eng/gb-wls).
+    codigo_local = models.CharField(max_length=8, blank=True)
+    codigo_visitante = models.CharField(max_length=8, blank=True)
     logo_local = models.URLField(blank=True)
     logo_visitante = models.URLField(blank=True)
 

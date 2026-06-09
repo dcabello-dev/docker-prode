@@ -26,6 +26,8 @@ def _longitud_columna(cursor, tabla, columna):
 
 def ampliar_columnas_texto(apps, schema_editor):
     connection = schema_editor.connection
+    if connection.vendor != 'postgresql':
+        return
     with connection.cursor() as cursor:
         zona_len = _longitud_columna(cursor, 'prode_partido', 'zona')
         if zona_len is not None and zona_len < 40:

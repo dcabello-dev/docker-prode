@@ -22,7 +22,7 @@ from django.core.management.base import BaseCommand, CommandError
 from ...models import Partido
 
 APP_DIR = Path(__file__).resolve().parent.parent.parent
-DEFAULT_ARCHIVO = APP_DIR / 'data' / 'mundial2026_eliminatorias.json'
+DATA_DIR = APP_DIR / 'data'
 
 CAMPOS_OPCIONALES = (
     'codigo_local', 'codigo_visitante', 'logo_local', 'logo_visitante',
@@ -35,7 +35,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             '--archivo', default=None,
-            help=f'Ruta al JSON (default: {DEFAULT_ARCHIVO}).',
+            help='Ruta a un JSON. Sin esto, carga todos los de data/.',
         )
         parser.add_argument(
             '--solo-nuevos', action='store_true',
@@ -43,9 +43,37 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        ruta = (
-            Path(options['archivo']) if options['archivo'] else DEFAULT_ARCHIVO
+        if options['archivo']:
+            rutas = [Path(options['archivo'])]
+        else:
+            rutas = sorted(DATA_DIR.glob('*.json'))
+
+        if not rutas:
+            raise CommandError(f'No hay archivos JSON en {DATA_DIR}.')
+
+        fases_validas = {c[0] for c in Partido.FASE_CHOICES}
+        solo_nuevos = options['solo_nuevos']
+        total_c = total_a = total_o = 0
+
+        for ruta in rutas:
+            c, a, o = self._cargar_archivo(ruta, fases_validas, solo_nuevos)
+            total_c += c
+            total_a += a
+            total_o += o
+            self.stdout.write(
+                f'  {ruta.name}: {c} creados, {a} actualizados'
+                + (f', {o} omitidos' if solo_nuevos else '')
+            )
+
+        resumen = (
+            f'Fixture cargado: {total_c} creados, '
+            f'{total_a} actualizados'
         )
+        if solo_nuevos:
+            resumen += f', {total_o} omitidos (ya existían)'
+        self.stdout.write(self.style.SUCCESS(resumen + '.'))
+
+    def _cargar_archivo(self, ruta, fases_validas, solo_nuevos):
         if not ruta.exists():
             raise CommandError(f'No existe el archivo: {ruta}')
 
@@ -57,11 +85,9 @@ class Command(BaseCommand):
         partidos = data.get('partidos') if isinstance(data, dict) else data
         if not isinstance(partidos, list):
             raise CommandError(
-                'El JSON debe tener una lista "partidos" (o ser una lista).'
+                f'{ruta.name}: debe tener una lista "partidos".'
             )
 
-        fases_validas = {c[0] for c in Partido.FASE_CHOICES}
-        solo_nuevos = options['solo_nuevos']
         creados = actualizados = omitidos = 0
 
         for i, p in enumerate(partidos, start=1):
@@ -104,13 +130,7 @@ class Command(BaseCommand):
             else:
                 actualizados += 1
 
-        resumen = (
-            f'Fixture cargado: {creados} creados, '
-            f'{actualizados} actualizados'
-        )
-        if solo_nuevos:
-            resumen += f', {omitidos} omitidos (ya existían)'
-        self.stdout.write(self.style.SUCCESS(resumen + '.'))
+        return creados, actualizados, omitidos
 
     def _parse_fecha(self, valor: str) -> datetime:
         texto = str(valor).strip().replace('Z', '+00:00')
