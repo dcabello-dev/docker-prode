@@ -1,70 +1,81 @@
 # ============================================================================
-# Stack AISLADO del Prode Mundial Institucional (IES 9-018 Malargüe).
+# Prode Mundial Institucional (IES 9-018 Malargüe) — servidor personal.
 #
-# Pensado para correr en el servidor del IES, SIN compartir red con otros
-# stacks. Compose crea su red default y los servicios se resuelven entre sí
-# por su `container_name` / `hostname`.
+# Este stack NO levanta su propia base: usa la PostgreSQL compartida
+# (db_central) y la red externa compartida (shared_network) del servidor.
+#
+# Requisitos previos en el servidor (una sola vez):
+#   1) Que exista la red compartida:
+#        docker network create shared_network   # si no existe
+#   2) Que en db_central exista la base y el usuario del Prode:
+#        docker exec -it db_central psql -U postgres -c \
+#          "CREATE USER prode WITH PASSWORD 'TU_PASS';"
+#        docker exec -it db_central psql -U postgres -c \
+#          "CREATE DATABASE prode OWNER prode;"
 #
 # Levantar:
 #   docker compose up -d --build
 #
-# Si tenés un Cloudflare Tunnel / reverse proxy en este servidor, apuntalo
-# al puerto publicado 8010 del host. Recordá setear en .env el dominio en
-# DJANGO_ALLOWED_HOSTS y DJANGO_CSRF_TRUSTED_ORIGINS.
+# Cloudflare Tunnel: apuntá el túnel al puerto publicado 8010 del host.
+# Recordá setear el dominio en DJANGO_ALLOWED_HOSTS y DJANGO_CSRF_TRUSTED_ORIGINS.
 #
-# Crear el superusuario admin (una sola vez, después de levantar):
-#   docker compose exec web python manage.py crear_admin
+# Crear usuarios (después de levantar):
+#   docker compose exec web python manage.py crear_usuario -u admin -p CLAVE -t admin
 # ============================================================================
 services:
-  db:
-    image: postgres:16
-    container_name: prode-postgres
-    hostname: prode-postgres
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-prode}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defini POSTGRES_PASSWORD en .env}
-      POSTGRES_DB: ${POSTGRES_DB:-prode}
-    volumes:
-      - prode_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prode} -d ${POSTGRES_DB:-prode}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 20s
-
   web:
     build:
       context: .
       dockerfile: Dockerfile
     image: prode-mundial:latest
-    container_name: prode-web
-    hostname: prode-web
+    container_name: prode_app
+    hostname: prode_app
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     env_file:
       - .env
     environment:
-      DJANGO_DEBUG: "false"
+      # Django core (settings.py lee estos nombres con prefijo DJANGO_)
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defini DJANGO_SECRET_KEY en .env}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-prode.ies9018malargue.edu.ar}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-prode.ies9018malargue.edu.ar,localhost,127.0.0.1}
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://prode.ies9018malargue.edu.ar}
-      # Conexión a PostgreSQL armada desde las variables de la base (un solo
-      # lugar de verdad). El host es el nombre del contenedor de la DB.
-      DATABASE_URL: postgres://${POSTGRES_USER:-prode}:${POSTGRES_PASSWORD:?Defini POSTGRES_PASSWORD en .env}@prode-postgres:5432/${POSTGRES_DB:-prode}
+
+      # Base compartida db_central (en la red shared_network).
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db_central:5432/${DB_NAME}
+
+      # Detrás de Cloudflare (HTTPS lo termina el túnel/proxy).
+      SECURE_SSL_REDIRECT: "False"
+      SESSION_COOKIE_SECURE: "True"
+      CSRF_COOKIE_SECURE: "True"
+
       # SofaScore: RapidAPI (APIDOJO) o API directa (auto = RapidAPI + fallback)
       SOFASCORE_BACKEND: ${SOFASCORE_BACKEND:-auto}
       RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
       RAPIDAPI_HOST: ${RAPIDAPI_HOST:-sofascore.p.rapidapi.com}
       SOFASCORE_SPORT: ${SOFASCORE_SPORT:-football}
       SOFASCORE_TOURNAMENT_ID: ${SOFASCORE_TOURNAMENT_ID:-0}
+
+    volumes:
+      # Estáticos recolectados (los sirve WhiteNoise) y media persistente.
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
+
     ports:
+      # Publicado en 8010 del host para el Cloudflare Tunnel.
       - "8010:8000"
 
-volumes:
-  prode_pgdata:
+    networks:
+      - shared_network
+
+    healthcheck:
+      # Sin depender de curl: usa Python (ya está en la imagen).
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/accounts/login/').status==200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  shared_network:
+    external: true
+    name: shared_network
