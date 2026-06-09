@@ -8,3 +8,7 @@ psycopg[binary]==3.3.4
 dj-database-url==3.1.2
 requests==2.34.2
 curl_cffi==0.10.0
+# Caché y sesiones en Redis
+django-redis==5.4.0
+# Hasher Argon2 (más rápido y seguro que PBKDF2 para login concurrente)
+argon2-cffi==23.1.0

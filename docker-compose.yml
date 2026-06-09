@@ -6,8 +6,8 @@
 #       prode.ies9018malargue.edu.ar -> prode_app:8000
 #     a través de la red externa compartida `lyntrix_network`.
 #
-#   - PostgreSQL vive en una red privada interna (`prode_internal_network`)
-#     a la que cloudflared NO tiene acceso: solo el contenedor web la alcanza.
+#   - PostgreSQL y Redis viven en `prode_internal_network` (privada):
+#     cloudflared no los alcanza, solo el contenedor web.
 #
 #   - Ningún servicio publica puertos al host: el tráfico público entra por el
 #     Cloudflare Tunnel y el privado se resuelve por DNS interno de Docker.
@@ -26,8 +26,7 @@ services:
 
   # ----------------------------------------------------------------------------
   # PostgreSQL - persistencia del Prode.
-  # No está en lyntrix_network: solo el contenedor web lo alcanza por la
-  # red interna privada.
+  # Solo en red interna: el tráfico de base de datos nunca sale al exterior.
   # ----------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
@@ -51,9 +50,30 @@ services:
       start_period: 30s
 
   # ----------------------------------------------------------------------------
+  # Redis - caché de sesiones y datos frecuentes.
+  # Solo en red interna: nunca expuesto al exterior.
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: prode-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+    networks:
+      - prode_internal_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
   # Web Django (gunicorn) - app del Prode.
   # Vive en dos redes:
-  #   - prode_internal_network: para hablar con Postgres.
+  #   - prode_internal_network: para hablar con Postgres y Redis.
   #   - lyntrix_network:        para que cloudflared lo encuentre como
   #                             `prode_app:8000`.
   # El entrypoint corre migrate + collectstatic antes de arrancar gunicorn.
@@ -68,38 +88,50 @@ services:
     env_file:
       - .env
     environment:
-      # Django core (settings.py lee estos nombres con prefijo DJANGO_)
+      # Django core
       DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defini DJANGO_SECRET_KEY en .env}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-prode.ies9018malargue.edu.ar,localhost,127.0.0.1}
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://prode.ies9018malargue.edu.ar}
 
-      # Conexión al Postgres del stack (resuelto por DNS interno de Docker).
+      # Conexión a Postgres (DNS interno de Docker).
       DATABASE_URL: postgres://${POSTGRES_USER:-prode}:${POSTGRES_PASSWORD:?Defini POSTGRES_PASSWORD en .env}@prode-postgres:5432/${POSTGRES_DB:-prode}
+
+      # Redis para sesiones y caché (DNS interno de Docker).
+      REDIS_URL: ${REDIS_URL:-redis://prode-redis:6379/0}
+
+      # Gunicorn: workers y threads configurables sin rebuild.
+      # Regla de oro: workers = 2 * nCPUs + 1  |  threads = 2-4 por worker.
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-0}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
 
       # Detrás de Cloudflare (HTTPS lo termina el túnel/proxy).
       SECURE_SSL_REDIRECT: "False"
       SESSION_COOKIE_SECURE: "True"
       CSRF_COOKIE_SECURE: "True"
 
-      # SofaScore: RapidAPI (APIDOJO) o API directa (auto = RapidAPI + fallback)
+      # SofaScore
       SOFASCORE_BACKEND: ${SOFASCORE_BACKEND:-auto}
       RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
       RAPIDAPI_HOST: ${RAPIDAPI_HOST:-sofascore.p.rapidapi.com}
       SOFASCORE_SPORT: ${SOFASCORE_SPORT:-football}
       SOFASCORE_TOURNAMENT_ID: ${SOFASCORE_TOURNAMENT_ID:-0}
+
     volumes:
-      # Estáticos recolectados (los sirve WhiteNoise) y media persistente.
       - ./staticfiles:/app/staticfiles
       - ./media:/app/media
+
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
     networks:
       - prode_internal_network
       - lyntrix_network
+
     healthcheck:
-      # Sin depender de curl: usa Python (ya está en la imagen).
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/accounts/login/').status==200 else 1)\""]
       interval: 30s
       timeout: 10s
@@ -108,14 +140,6 @@ services:
 
 # ==============================================================================
 # Redes
-#
-#   prode_internal_network  Red privada local del stack: Postgres + Web.
-#                           Aislada de internet y de cloudflared.
-#
-#   lyntrix_network         Red externa compartida con cloudflared y otros
-#                           servicios. Se DEBE crear previamente al primer
-#                           arranque con:
-#                             docker network create lyntrix_network
 # ==============================================================================
 networks:
   prode_internal_network:
@@ -125,9 +149,6 @@ networks:
 
 # ==============================================================================
 # Volúmenes
-#
-#   prode_postgres_data     Persistencia del directorio de datos de Postgres
-#                           en el host. NO eliminar entre upgrades.
 # ==============================================================================
 volumes:
   prode_postgres_data:

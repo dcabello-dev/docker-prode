@@ -1,11 +1,41 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from .models import Partido, Prediccion
 
 User = get_user_model()
+
+# Claves y TTLs de caché.
+# Los partidos cambian solo cuando el admin actualiza resultados o sincroniza,
+# así que 2 minutos es más que suficiente y descarga la DB por completo.
+_CACHE_PARTIDOS = 'partidos_todos'
+_CACHE_PARTIDOS_TTL = 120  # segundos
+
+# El ranking cambia solo cuando se recalculan puntos (poco frecuente).
+_CACHE_RANKING = 'ranking_usuarios'
+_CACHE_RANKING_TTL = 300  # 5 minutos
+
+
+def _get_partidos():
+    """Devuelve todos los partidos; usa caché para evitar queries repetidas."""
+    partidos = cache.get(_CACHE_PARTIDOS)
+    if partidos is None:
+        partidos = list(Partido.objects.all().order_by('fecha_hora'))
+        cache.set(_CACHE_PARTIDOS, partidos, _CACHE_PARTIDOS_TTL)
+    return partidos
+
+
+def invalidar_cache_partidos():
+    """Llama a esto cuando un admin actualiza resultados o sincroniza."""
+    cache.delete(_CACHE_PARTIDOS)
+
+
+def invalidar_cache_ranking():
+    """Llama a esto cuando se recalculan puntos."""
+    cache.delete(_CACHE_RANKING)
 
 
 def fases_a_mostrar(partidos_por_fase):
@@ -30,7 +60,6 @@ def fases_a_mostrar(partidos_por_fase):
             'partidos': items,
         })
 
-        # Si esta fase todavía no terminó, no revelamos las próximas.
         ultima_fecha = max(it['objeto'].fecha_hora for it in items)
         if ultima_fecha >= ahora:
             break
@@ -40,8 +69,6 @@ def fases_a_mostrar(partidos_por_fase):
 
 @login_required
 def panel_prode(request):
-    partidos = Partido.objects.all().order_by('fecha_hora')
-
     if request.method == 'POST':
         partido_id = request.POST.get('partido_id')
         partido = Partido.objects.filter(id=partido_id).first()
@@ -63,6 +90,9 @@ def panel_prode(request):
             )
         return redirect('panel_prode')
 
+    # GET: carga partidos desde caché, predicciones siempre desde DB (son por usuario).
+    partidos = _get_partidos()
+
     predicciones_usuario = {
         p.partido_id: p
         for p in Prediccion.objects.filter(usuario=request.user)
@@ -83,13 +113,16 @@ def panel_prode(request):
 
 
 def ranking_institucional(request):
-    # Los puntos se leen del PerfilUsuario (lo mantiene el cálculo).
-    usuarios = (
-        User.objects
-        .select_related('perfil')
-        .order_by('-perfil__puntos_totales', 'username')
-    )
+    usuarios = cache.get(_CACHE_RANKING)
+    if usuarios is None:
+        usuarios = list(
+            User.objects
+            .select_related('perfil')
+            .order_by('-perfil__puntos_totales', 'username')
+        )
+        cache.set(_CACHE_RANKING, usuarios, _CACHE_RANKING_TTL)
     return render(request, 'prode/ranking.html', {'usuarios': usuarios})
+
 
 def acerca_de(request):
     return render(request, 'prode/acerca_de.html')

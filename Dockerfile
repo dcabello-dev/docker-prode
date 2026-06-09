@@ -30,4 +30,4 @@ EXPOSE 8000
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
 
 # Servidor de producción: gunicorn (3 workers)
-CMD ["gunicorn", "ComunidadSoft.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
+CMD ["gunicorn", "ComunidadSoft.wsgi:application", "--config", "gunicorn.conf.py", "--bind", "0.0.0.0:8000"]

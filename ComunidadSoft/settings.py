@@ -102,23 +102,68 @@ DATABASES = {
     )
 }
 
+# ------------------------------------------------------------------------------
+# Caché y sesiones
+# ------------------------------------------------------------------------------
+# Con REDIS_URL usa Redis (producción); sin ella, memoria local (dev/testing).
+# Redis elimina la consulta a DB en cada request autenticado y acelera el login.
+_REDIS_URL = os.environ.get('REDIS_URL', '')
+
+if _REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': _REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+                'CONNECTION_POOL_KWARGS': {'max_connections': 50},
+                'IGNORE_EXCEPTIONS': True,  # Si Redis cae, la app sigue (sin caché).
+            },
+            'KEY_PREFIX': 'prode',
+            'TIMEOUT': 300,
+        }
+    }
+    # Sesiones en Redis: el request autenticado NO toca la DB para validar sesión.
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'prode-cache',
+        }
+    }
+    # cached_db: busca en caché primero, cae a DB si no encuentra.
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 semana
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# ------------------------------------------------------------------------------
+# Hasher de contraseñas
+# ------------------------------------------------------------------------------
+# Argon2 gana el login concurrente: usa memoria en vez de solo CPU, así
+# 100 logins simultáneos no saturan todos los núcleos al mismo tiempo.
+# PBKDF2 queda como fallback para contraseñas ya existentes (se rehasean
+# automáticamente la próxima vez que el usuario se loguea).
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
 ]
 
 

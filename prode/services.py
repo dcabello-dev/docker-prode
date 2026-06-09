@@ -76,4 +76,9 @@ def calcular_puntos_prode(partido_id: int, forzar: bool = False) -> int:
         )
         procesadas += 1
 
+    # Invalida el caché del ranking y partidos (los puntos cambiaron).
+    from .views import invalidar_cache_ranking, invalidar_cache_partidos
+    invalidar_cache_ranking()
+    invalidar_cache_partidos()
+
     return procesadas
