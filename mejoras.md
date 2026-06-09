@@ -114,9 +114,14 @@ compañeros se den de alta solos.
 
 ---
 
-## 10. Base de datos SQLite
-**Estado:** Informativo
+## 10. Base de datos: migrado a PostgreSQL
+**Estado:** Resuelto
 
-El proyecto usa SQLite. Para la escala de un prode interno del IES es
-suficiente y se persiste en un volumen de Docker. Si en el futuro crece o se
-necesita concurrencia alta, se podría migrar a PostgreSQL.
+Originalmente el proyecto usaba SQLite. Se migró a **PostgreSQL 16** para el
+despliegue en el servidor del IES (mejor concurrencia y robustez).
+
+`settings.py` elige el motor según las variables de entorno: si está definido
+`POSTGRES_DB` usa PostgreSQL, si no, cae a SQLite (cómodo para desarrollo local
+sin Docker). El stack de `docker-compose.yml` levanta un servicio `db` con
+healthcheck y volumen persistente (`prode_pgdata`), y `web` espera a que la base
+esté sana antes de arrancar.

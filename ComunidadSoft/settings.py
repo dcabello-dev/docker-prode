@@ -87,13 +87,28 @@ WSGI_APPLICATION = 'ComunidadSoft.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        # En Docker apunta a un volumen persistente (DJANGO_DB_PATH).
-        'NAME': os.environ.get('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
+# Si está definido POSTGRES_DB usamos PostgreSQL (producción / Docker).
+# Si no, caemos a SQLite (cómodo para desarrollo local sin Docker).
+if os.environ.get('POSTGRES_DB'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_DB'),
+            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+            'HOST': os.environ.get('POSTGRES_HOST', 'db'),
+            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+            'CONN_MAX_AGE': int(os.environ.get('POSTGRES_CONN_MAX_AGE', '60')),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            # En Docker apunta a un volumen persistente (DJANGO_DB_PATH).
+            'NAME': os.environ.get('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
+        }
+    }
 
 
 # Password validation

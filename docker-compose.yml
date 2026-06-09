@@ -13,9 +13,29 @@
 # DJANGO_ALLOWED_HOSTS y DJANGO_CSRF_TRUSTED_ORIGINS.
 #
 # Crear el superusuario admin (una sola vez, después de levantar):
-#   docker compose exec web python manage.py createsuperuser
+#   docker compose exec web python manage.py crear_admin
 # ============================================================================
 services:
+  db:
+    image: postgres:16
+    container_name: prode-postgres
+    hostname: prode-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prode}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defini POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:-prode}
+    volumes:
+      - prode_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prode} -d ${POSTGRES_DB:-prode}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
   web:
     build:
       context: .
@@ -24,6 +44,9 @@ services:
     container_name: prode-web
     hostname: prode-web
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -31,12 +54,14 @@ services:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defini DJANGO_SECRET_KEY en .env}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-prode.ies9018malargue.edu.ar}
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://prode.ies9018malargue.edu.ar}
-      # La base SQLite vive en el volumen persistente, no en la imagen
-      DJANGO_DB_PATH: /app/data/db.sqlite3
-    volumes:
-      - prode_data:/app/data
+      # Conexión a PostgreSQL (el host es el nombre del servicio/contenedor)
+      POSTGRES_HOST: prode-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-prode}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defini POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:-prode}
     ports:
       - "8010:8000"
 
 volumes:
-  prode_data:
+  prode_pgdata:
