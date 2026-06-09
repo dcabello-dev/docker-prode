@@ -48,7 +48,7 @@ class Command(BaseCommand):
         predicciones = 0
         for fecha in fechas:
             try:
-                eventos = list_by_date(fecha)
+                eventos = list_by_date(fecha, inverse=True)
             except SofaScoreError as exc:
                 raise CommandError(str(exc))
 
