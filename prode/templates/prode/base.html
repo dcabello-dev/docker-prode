@@ -1,9 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prode Mundial Institucional</title>
+    <title>ProdIES</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         // Configuración personalizada de Tailwind para clavar exactos los colores del flyer
@@ -41,8 +42,9 @@
     
     <nav class="bg-darkNav border-b border-gray-800/80 px-6 py-4 flex justify-between items-center shadow-lg shadow-black/40">
         
-        <a href="{% url 'panel_prode' %}" class="text-xl font-black tracking-widest text-neonGreen hover:opacity-80 transition duration-200">
-            🏆 PRODE TERCIARIO
+        <a href="{% url 'panel_prode' %}" class="flex items-center gap-3 hover:opacity-80 transition duration-200">
+            <img src="{% static 'prode/img/logo.png' %}" alt="Logo ProdIES" class="h-10 w-auto">
+            <span class="text-xl font-black tracking-widest text-neonGreen">ProdIES</span>
         </a>
         
         <div class="flex items-center space-x-6">
