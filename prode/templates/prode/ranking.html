@@ -13,10 +13,10 @@
         </thead>
         <tbody class="divide-y divide-gray-700 text-sm md:text-base">
             {% for u in usuarios %}
-            <tr class="hover:bg-gray-750 transition {% if u == user %}bg-indigo-950/40{% endif %}">
+            <tr class="hover:bg-gray-700/50 transition {% if u == user %}bg-indigo-950/40{% endif %}">
                 <td class="p-4 text-center font-bold text-indigo-400">{{ forloop.counter }}°</td>
                 <td class="p-4 font-semibold">{{ u.username }} {% if u == user %}<span class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full ml-2">Vos</span>{% endif %}</td>
-                <td class="p-4 text-center font-black text-emerald-400 text-lg">{{ u.puntos_totales|default:0 }}</td>
+                <td class="p-4 text-center font-black text-emerald-400 text-lg">{{ u.perfil.puntos_totales|default:0 }}</td>
             </tr>
             {% endfor %}
         </tbody>

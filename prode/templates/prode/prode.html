@@ -17,23 +17,31 @@
 
             <div class="flex items-center space-x-3 w-32 justify-end">
                 <span class="font-semibold text-sm md:text-base hidden sm:inline">{{ item.objeto.equipo_local }}</span>
+                {% if item.objeto.logo_local %}
+                <img src="{{ item.objeto.logo_local }}" alt="{{ item.objeto.equipo_local }}" class="w-8 h-auto shadow">
+                {% elif item.objeto.codigo_local %}
                 <img src="https://flagcdn.com/w40/{{ item.objeto.codigo_local }}.png" alt="{{ item.objeto.equipo_local }}" class="w-8 h-auto shadow">
+                {% endif %}
             </div>
 
             <div class="flex items-center space-x-2 bg-gray-900 p-2 rounded-lg border border-gray-600">
                 <input type="number" name="goles_local_{{ item.objeto.id }}" 
-                       value="{% if item.prediccion %}{{ item.prediccion.goles_local_pred }}{% endif %}"
+                       value="{% if item.prediccion %}{{ item.prediccion.goles_local_apostado }}{% endif %}"
                        min="0" class="w-12 bg-gray-800 text-center text-white font-bold rounded p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                        {% if item.objeto.bloqueado %}disabled{% endif %}>
                 <span class="text-gray-500 font-bold">-</span>
                 <input type="number" name="goles_visitante_{{ item.objeto.id }}" 
-                       value="{% if item.prediccion %}{{ item.prediccion.goles_visitante_pred }}{% endif %}"
+                       value="{% if item.prediccion %}{{ item.prediccion.goles_visitante_apostado }}{% endif %}"
                        min="0" class="w-12 bg-gray-800 text-center text-white font-bold rounded p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                        {% if item.objeto.bloqueado %}disabled{% endif %}>
             </div>
 
             <div class="flex items-center space-x-3 w-32 justify-start">
+                {% if item.objeto.logo_visitante %}
+                <img src="{{ item.objeto.logo_visitante }}" alt="{{ item.objeto.equipo_visitante }}" class="w-8 h-auto shadow">
+                {% elif item.objeto.codigo_visitante %}
                 <img src="https://flagcdn.com/w40/{{ item.objeto.codigo_visitante }}.png" alt="{{ item.objeto.equipo_visitante }}" class="w-8 h-auto shadow">
+                {% endif %}
                 <span class="font-semibold text-sm md:text-base hidden sm:inline">{{ item.objeto.equipo_visitante }}</span>
             </div>
 
@@ -47,10 +55,10 @@
         </form>
 
         <div class="text-center md:text-right min-w-[100px]">
-            {% if item.objeto.goles_local_real is not None %}
-                <p class="text-xs text-gray-400">Resultado: {{ item.objeto.goles_local_real }}-{{ item.objeto.goles_visitante_real }}</p>
+            {% if item.objeto.goles_local is not None %}
+                <p class="text-xs text-gray-400">Resultado: {{ item.objeto.goles_local }}-{{ item.objeto.goles_visitante }}</p>
                 <p class="text-sm font-bold text-green-400">
-                    +{% if item.prediccion %}{{ item.prediccion.puntos_ganados }}{% else %}0{% endif %} pts
+                    +{% if item.prediccion %}{{ item.prediccion.puntos_obtenidos }}{% else %}0{% endif %} pts
                 </p>
             {% endif %}
         </div>

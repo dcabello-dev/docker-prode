@@ -17,13 +17,12 @@ Aplicación web donde los usuarios (alumnos) inician sesión, cargan sus
 **predicciones** de los resultados de cada partido del Mundial y compiten en un
 **ranking institucional** según los puntos que acumulan.
 
-### Reglas de puntuación (`Prediccion.calcular_puntos`)
+### Reglas de puntuación (`prode/scoring.py`)
 
 | Acierto | Puntos |
 |--------|--------|
-| Resultado exacto (ej. 3-1 = 3-1) | 3 |
-| Acierta el ganador, no el marcador | 2 |
-| Acierta el empate, no el marcador | 1 |
+| Marcador exacto (ej. 3-1 = 3-1) | 3 |
+| Acierta el resultado (ganador/empate), no el marcador | 1 |
 | No acierta | 0 |
 
 ### Reglas de negocio clave
@@ -31,8 +30,11 @@ Aplicación web donde los usuarios (alumnos) inician sesión, cargan sus
 - Una predicción por usuario por partido (`unique_together`).
 - Un partido queda **bloqueado** cuando faltan menos de 6 horas para su inicio
   (`Partido.bloqueado`), impidiendo cargar/editar la predicción.
-- El resultado real y el recálculo de puntos los gestiona el administrador desde
-  el panel de Django admin.
+- El **fixture y los resultados se sincronizan automáticamente** desde
+  API-Football (comandos `fetch_fixture` y `update_results`).
+- Al marcarse un partido como `FINALIZADO`, se calculan los puntos de sus
+  predicciones dentro de una **transacción atómica** y se acumulan en
+  `PerfilUsuario.puntos_totales`.
 
 ---
 
@@ -46,10 +48,13 @@ Aplicación web donde los usuarios (alumnos) inician sesión, cargan sus
 | Estáticos | WhiteNoise | 6.12.0 |
 | Base de datos | PostgreSQL | 16 |
 | Driver DB | psycopg (binary) | 3.3.4 |
+| Config DB | dj-database-url (`DATABASE_URL`) | 3.1.2 |
+| Cliente HTTP | requests | 2.34.2 |
+| Datos deportivos | API-Football (RapidAPI) | v3 |
 | Frontend | Templates Django + Tailwind CSS (CDN) | — |
 | Auth | `django.contrib.auth` (nativo) | — |
 | Infra | Docker + Docker Compose | — |
-| Banderas | API externa `flagcdn.com` | — |
+| Logos/Banderas | API-Football (logo) con fallback a `flagcdn.com` | — |
 
 ---
 
@@ -93,16 +98,22 @@ docker-prode/
 │   ├── urls.py
 │   ├── wsgi.py / asgi.py
 ├── prode/                    # App principal
-│   ├── models.py             # Partido, Prediccion
+│   ├── models.py             # Partido, Prediccion, PerfilUsuario
 │   ├── views.py              # panel_prode, ranking_institucional
-│   ├── admin.py              # Carga de partidos + acción "Calcular puntos"
+│   ├── admin.py              # Admin + acción "Recalcular puntos"
+│   ├── api_football.py       # Cliente HTTP de API-Football (RapidAPI)
+│   ├── sync.py               # Mapeo y update_or_create de fixtures
+│   ├── scoring.py            # Cálculo de puntos (transaccional)
+│   ├── signals.py            # Crea PerfilUsuario al alta de usuario
 │   ├── urls.py
 │   ├── migrations/
 │   ├── management/
 │   │   └── commands/
-│   │       └── crear_admin.py  # Alta no interactiva del superusuario
+│   │       ├── crear_admin.py     # Alta no interactiva del superusuario
+│   │       ├── fetch_fixture.py   # Sincroniza el fixture (semanal)
+│   │       └── update_results.py  # Actualiza resultados y puntúa
 │   └── templates/
-│       ├── prode/            # base, prode, prode2 (obsoleto), ranking
+│       ├── prode/            # base, prode, ranking
 │       └── registration/     # login, logged_out
 ├── docker/
 │   └── entrypoint.sh         # migrate + collectstatic + arranque gunicorn
@@ -129,24 +140,30 @@ Se definen en un archivo `.env` (no versionado). Plantilla en `.env.example`.
 | `DJANGO_DEBUG` | Activa modo debug | `True` (compose lo fuerza a `false`) |
 | `DJANGO_ALLOWED_HOSTS` | Hosts permitidos, separados por coma (sin `https://`) | `localhost,127.0.0.1` |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | Orígenes CSRF, separados por coma (con `https://`) | vacío |
-| `POSTGRES_DB` | Nombre de la base. **Si está, se usa PostgreSQL** | — |
-| `POSTGRES_USER` | Usuario de la base | `postgres` (compose: `prode`) |
+| `DATABASE_URL` | URL de conexión (la consume `dj-database-url`) | SQLite local |
+| `DB_CONN_MAX_AGE` | Persistencia de conexiones (segundos) | `60` |
+| `POSTGRES_DB` | Nombre de la base (contenedor `db` + arma `DATABASE_URL`) | `prode` |
+| `POSTGRES_USER` | Usuario de la base | `prode` |
 | `POSTGRES_PASSWORD` | Contraseña de la base (**obligatoria**) | — |
-| `POSTGRES_HOST` | Host de la base | `db` (compose: `prode-postgres`) |
-| `POSTGRES_PORT` | Puerto de la base | `5432` |
-| `POSTGRES_CONN_MAX_AGE` | Persistencia de conexiones (segundos) | `60` |
+| `API_FOOTBALL_KEY` | API key de RapidAPI (**obligatoria** para sincronizar) | vacío |
+| `API_FOOTBALL_HOST` | Host de la API | `api-football-v1.p.rapidapi.com` |
+| `API_FOOTBALL_LEAGUE_ID` | ID de liga (1 = Mundial FIFA) | `1` |
+| `API_FOOTBALL_SEASON` | Temporada (año) | `2026` |
 | `DJANGO_ADMIN_USER` | Usuario admin para `crear_admin` | `admin` |
 | `DJANGO_ADMIN_PASSWORD` | Contraseña admin (**obligatoria** para `crear_admin`) | — |
 | `DJANGO_ADMIN_EMAIL` | Email admin | vacío |
 
 ### Selección de motor de base de datos
 
-`settings.py` decide en runtime:
+`settings.py` usa `dj_database_url.config()` y decide en runtime:
 
 ```
-POSTGRES_DB definido  →  PostgreSQL (producción / Docker)
-POSTGRES_DB ausente   →  SQLite     (desarrollo local sin Docker)
+DATABASE_URL definido  →  el motor de la URL (postgres:// → PostgreSQL)
+DATABASE_URL ausente   →  SQLite (desarrollo local sin Docker)
 ```
+
+En Docker, `docker-compose.yml` arma el `DATABASE_URL` a partir de las
+variables `POSTGRES_*` (una sola fuente de verdad para usuario/clave/base).
 
 ### Seguridad en producción (`DEBUG = False`)
 
@@ -225,6 +242,35 @@ Migración del motor de base de datos:
 - **`Dockerfile`**: se eliminó el `mkdir /app/data` (era para SQLite).
 - **`mejoras.md`**: punto 10 actualizado (SQLite → PostgreSQL, resuelto).
 
+### `888c9b4` — Integrar API-Football y refactorizar el dominio
+Automatización del fixture/resultados y rediseño del modelo de datos:
+
+- **`settings.py`**: `DATABASES` ahora vía `dj-database-url` (`DATABASE_URL`,
+  backend `postgresql`). Nueva config `API_FOOTBALL_*`.
+- **`requirements.txt`**: `dj-database-url==3.1.2`, `requests==2.34.2`.
+- **`models.py`** (reescrito):
+  - `Partido`: `api_id` (único, indexado), `estado`
+    (`PENDIENTE`/`EN_CURSO`/`FINALIZADO`), `goles_local`/`goles_visitante`,
+    `logo_*` y se conservan `codigo_*`, `fase`, `zona` y la property `bloqueado`.
+  - `Prediccion`: `goles_local_apostado`/`goles_visitante_apostado`,
+    `puntos_obtenidos`, `procesada` (indexado).
+  - `PerfilUsuario`: `OneToOne` con `puntos_totales` (indexado).
+- **`scoring.py`** (nuevo): `calcular_puntos` (3/1/0) y `procesar_partido`
+  transaccional (`transaction.atomic` + `select_for_update` + `select_related`,
+  acumula en el perfil con `F()`). Idempotente; `forzar=True` para recálculo.
+- **`api_football.py`** (nuevo): cliente HTTP de `/v3/fixtures` con `requests`.
+- **`sync.py`** (nuevo): mapeo de estado/fase y `update_or_create` por `api_id`.
+- **`signals.py`** (nuevo): crea `PerfilUsuario` al alta de usuario.
+- **Comandos**: `fetch_fixture` (sincroniza el fixture, semanal) y
+  `update_results` (sólo llama a la API si hay pendientes vencidos, un request
+  por fecha, marca `FINALIZADO` y dispara el cálculo de puntos).
+- **`admin.py`/`views.py`/templates**: adaptados a los nuevos campos; ranking
+  lee de `PerfilUsuario`; logos de la API con fallback a flagcdn. Se eliminó el
+  template obsoleto `prode2.html`.
+- **`docker-compose.yml`**: `web` recibe `DATABASE_URL` (armado desde
+  `POSTGRES_*`) y las variables `API_FOOTBALL_*`.
+- **Migraciones**: `0001_initial` regenerada (sin datos que preservar).
+
 ---
 
 ## 7. Guía de despliegue (servidor del IES)
@@ -270,6 +316,12 @@ docker compose logs -f web
 # Crear / actualizar admin (lee del .env)
 docker compose exec web python manage.py crear_admin
 ./crear-admin.sh
+
+# Sincronizar el fixture completo desde API-Football (semanal)
+docker compose exec web python manage.py fetch_fixture
+
+# Actualizar resultados de partidos jugados y calcular puntos (cron frecuente)
+docker compose exec web python manage.py update_results
 
 # Superusuario interactivo (alternativa nativa)
 docker compose exec web python manage.py createsuperuser

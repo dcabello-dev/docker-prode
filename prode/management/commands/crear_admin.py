@@ -20,6 +20,8 @@ import os
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
+from prode.models import PerfilUsuario
+
 
 class Command(BaseCommand):
     help = "Crea o actualiza el usuario administrador del Prode."
@@ -60,6 +62,8 @@ class Command(BaseCommand):
         user.is_superuser = True
         user.set_password(password)
         user.save()
+
+        PerfilUsuario.objects.get_or_create(usuario=user)
 
         if creado:
             self.stdout.write(self.style.SUCCESS(

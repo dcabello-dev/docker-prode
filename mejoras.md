@@ -7,7 +7,7 @@ en el radar.
 ---
 
 ## 1. `prode2.html` está roto / sin uso
-**Estado:** Pendiente
+**Estado:** Resuelto (eliminado en la refactorización de API-Football)
 
 `prode/templates/prode/prode2.html` usa filtros y tags personalizados
 (`dict_get`, `dict_item`, `attr`, `csrf_with_prediccion_built_in`) que **no
@@ -32,15 +32,12 @@ ver la tabla de posiciones.
 ---
 
 ## 3. El cálculo de puntos es manual
-**Estado:** Pendiente
+**Estado:** Resuelto
 
-El administrador debe ejecutar la acción "Calcular puntos" en el panel admin
-por cada partido luego de cargar el resultado. Si se olvida, los puntos quedan
-en 0.
-
-**Propuesta:** Automatizar el recálculo cuando se guarda el resultado real del
-partido (sobreescribiendo `Partido.save()` o usando una señal `post_save` que
-recalcule todas las predicciones asociadas).
+El comando `update_results` ahora marca los partidos como `FINALIZADO` y dispara
+automáticamente `procesar_partido` (transaccional), que calcula los puntos y los
+acumula en `PerfilUsuario`. El admin conserva la acción "Recalcular puntos"
+(`forzar=True`) para correcciones manuales.
 
 ---
 
@@ -82,14 +79,10 @@ pero las fechas se mostraban en inglés/UTC.
 ---
 
 ## 7. Detalles menores de código
-**Estado:** Pendiente
+**Estado:** Resuelto
 
-- `prode/urls.py` importa `from django.urls import path` dos veces.
-- `ranking.html` usa la clase `bg-gray-750`, que no existe por defecto en
-  Tailwind (no genera estilo).
-
-**Propuesta:** Limpiar el import duplicado y usar `bg-gray-700/750` válido o un
-color de la paleta.
+- `prode/urls.py`: se eliminó el import duplicado de `path`.
+- `ranking.html`: se reemplazó `bg-gray-750` (inexistente) por `bg-gray-700/50`.
 
 ---
 

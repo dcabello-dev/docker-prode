@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -87,28 +89,16 @@ WSGI_APPLICATION = 'ComunidadSoft.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# Si está definido POSTGRES_DB usamos PostgreSQL (producción / Docker).
-# Si no, caemos a SQLite (cómodo para desarrollo local sin Docker).
-if os.environ.get('POSTGRES_DB'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('POSTGRES_DB'),
-            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
-            'HOST': os.environ.get('POSTGRES_HOST', 'db'),
-            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
-            'CONN_MAX_AGE': int(os.environ.get('POSTGRES_CONN_MAX_AGE', '60')),
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            # En Docker apunta a un volumen persistente (DJANGO_DB_PATH).
-            'NAME': os.environ.get('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
-        }
-    }
+# Se configura desde la variable de entorno DATABASE_URL (dj-database-url).
+# - Producción / Docker: postgres://user:pass@host:5432/db (backend postgresql)
+# - Desarrollo local: si no hay DATABASE_URL, cae a SQLite.
+DATABASES = {
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=int(os.environ.get('DB_CONN_MAX_AGE', '60')),
+        conn_health_checks=True,
+    )
+}
 
 
 # Password validation
@@ -169,3 +159,15 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+
+# API-Football (RapidAPI) - sincronización del fixture y resultados.
+# https://www.api-football.com/documentation-v3
+API_FOOTBALL_KEY = os.environ.get('API_FOOTBALL_KEY', '')
+API_FOOTBALL_HOST = os.environ.get(
+    'API_FOOTBALL_HOST', 'api-football-v1.p.rapidapi.com'
+)
+# League 1 = FIFA World Cup. Season en formato de año (ej. 2026).
+API_FOOTBALL_LEAGUE_ID = int(os.environ.get('API_FOOTBALL_LEAGUE_ID', '1'))
+API_FOOTBALL_SEASON = int(os.environ.get('API_FOOTBALL_SEASON', '2026'))
+API_FOOTBALL_TIMEOUT = int(os.environ.get('API_FOOTBALL_TIMEOUT', '30'))
