@@ -43,10 +43,9 @@
     
     <nav class="bg-darkNav border-b border-gray-800/80 px-6 py-4 flex justify-between items-center shadow-lg shadow-black/40">
         
-        <a href="{% url 'panel_prode' %}" class="hover:opacity-80 transition duration-200">
-            <span class="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-white shadow-md">
-                <img src="{% static 'prode/img/logo.png' %}" alt="Logo ProdIES" class="h-24 w-24 object-contain">
-            </span>
+        <a href="{% url 'panel_prode' %}" class="relative flex items-center hover:opacity-80 transition duration-200">
+            <span class="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-md"></span>
+            <img src="{% static 'prode/img/logo.png' %}" alt="Logo ProdIES" class="relative h-24 w-auto object-contain">
         </a>
         
         <div class="flex items-center space-x-6">
