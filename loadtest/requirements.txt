@@ -1,0 +1,3 @@
+# Dependencias SOLO para el test de estrés (no van en la imagen de producción).
+# Instalalas en tu máquina con: pip install -r loadtest/requirements.txt
+locust==2.32.4
