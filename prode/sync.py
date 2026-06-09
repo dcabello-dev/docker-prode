@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone as dt_timezone
+from datetime import date, datetime, timezone as dt_timezone
+
+from django.conf import settings
 
 from .models import Partido
 from .sofascore import tournament_id_de_evento
@@ -26,23 +28,64 @@ def mapear_estado(status: dict) -> str:
     return Partido.ESTADO_PENDIENTE
 
 
+def mapear_fase_por_fecha(fecha: date) -> str | None:
+    """Fallback por calendario del Mundial (configurable en settings)."""
+    rangos = getattr(settings, 'SOFASCORE_FASE_FECHAS', {})
+    for fase in Partido.FASE_ORDEN:
+        if fase == 'GRUPOS':
+            continue
+        rango = rangos.get(fase)
+        if not rango:
+            continue
+        desde = date.fromisoformat(rango[0])
+        hasta = date.fromisoformat(rango[1])
+        if desde <= fecha <= hasta:
+            return fase
+
+    inicio_grupos = getattr(settings, 'SOFASCORE_GRUPOS_DESDE', None)
+    fin_grupos = getattr(settings, 'SOFASCORE_GRUPOS_HASTA', None)
+    if inicio_grupos and fin_grupos:
+        d0 = date.fromisoformat(inicio_grupos)
+        d1 = date.fromisoformat(fin_grupos)
+        if d0 <= fecha <= d1:
+            return 'GRUPOS'
+    return None
+
+
 def mapear_fase(event: dict) -> str:
-    """Deriva la fase a partir del round/tournament de SofaScore."""
+    """Deriva la fase desde round/tournament de SofaScore o por fecha."""
     round_info = event.get('roundInfo') or {}
     nombre = (round_info.get('name') or '').lower()
     torneo = event.get('tournament') or {}
     texto = f"{nombre} {(torneo.get('name') or '')}".lower()
 
-    if 'final' in texto and 'semi' not in texto and '3rd' not in texto:
-        return 'FINAL'
+    if any(x in texto for x in ('3rd', 'third', 'tercer', '3er')):
+        return 'TERCERO'
     if 'semi' in texto:
         return 'SEMI'
-    if '3rd' in texto or 'third' in texto:
-        return 'TERCERO'
-    if 'quarter' in texto or '1/4' in texto:
+    if 'final' in texto and 'semi' not in texto:
+        return 'FINAL'
+    if any(x in texto for x in ('quarter', '1/4', 'cuart')):
         return 'CUARTOS'
-    if '1/8' in texto or 'round of 16' in texto or 'octav' in texto:
+    if any(x in texto for x in (
+        'round of 16', '1/8', 'octav', '8th', 'eighth',
+    )):
         return 'OCTAVOS'
+    if any(x in texto for x in (
+        'round of 32', '1/16', '1/32', 'dieciseis', '16th',
+        'thirty-two', '32nd', '16 avos', '16avos',
+    )):
+        return 'DIECISEISAVOS'
+    if 'group' in texto or 'grupo' in texto:
+        return 'GRUPOS'
+
+    ts = event.get('startTimestamp')
+    if ts:
+        fecha = datetime.fromtimestamp(ts, tz=dt_timezone.utc).date()
+        por_fecha = mapear_fase_por_fecha(fecha)
+        if por_fecha:
+            return por_fecha
+
     return 'GRUPOS'
 
 

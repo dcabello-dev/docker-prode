@@ -161,10 +161,23 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 
-# SofaScore (APIDOJO) vía RapidAPI - sincronización de fixture y resultados.
+# SofaScore - sincronización de fixture y resultados.
+# Backend: auto (RapidAPI y fallback direct), rapidapi o direct (curl_cffi).
+SOFASCORE_BACKEND = os.environ.get('SOFASCORE_BACKEND', 'auto')
 RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
 RAPIDAPI_HOST = os.environ.get('RAPIDAPI_HOST', 'sofascore.p.rapidapi.com')
 RAPIDAPI_TIMEOUT = int(os.environ.get('RAPIDAPI_TIMEOUT', '30'))
-# Deporte y torneo de SofaScore a sincronizar (TOURNAMENT_ID del Mundial).
 SOFASCORE_SPORT = os.environ.get('SOFASCORE_SPORT', 'football')
 SOFASCORE_TOURNAMENT_ID = int(os.environ.get('SOFASCORE_TOURNAMENT_ID', '0'))
+
+# Calendario del Mundial 2026 para inferir fase si la API no trae round claro.
+SOFASCORE_GRUPOS_DESDE = os.environ.get('SOFASCORE_GRUPOS_DESDE', '2026-06-11')
+SOFASCORE_GRUPOS_HASTA = os.environ.get('SOFASCORE_GRUPOS_HASTA', '2026-06-27')
+SOFASCORE_FASE_FECHAS = {
+    'DIECISEISAVOS': ('2026-06-28', '2026-07-03'),
+    'OCTAVOS': ('2026-07-04', '2026-07-07'),
+    'CUARTOS': ('2026-07-10', '2026-07-11'),
+    'SEMI': ('2026-07-14', '2026-07-15'),
+    'TERCERO': ('2026-07-18', '2026-07-18'),
+    'FINAL': ('2026-07-19', '2026-07-19'),
+}

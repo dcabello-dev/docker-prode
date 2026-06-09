@@ -37,13 +37,25 @@ def panel_prode(request):
         for p in Prediccion.objects.filter(usuario=request.user)
     }
 
-    partidos_con_prediccion = [
-        {'objeto': partido, 'prediccion': predicciones_usuario.get(partido.id)}
-        for partido in partidos
+    partidos_por_fase: dict[str, list] = {f: [] for f in Partido.FASE_ORDEN}
+    for partido in partidos:
+        partidos_por_fase.setdefault(partido.fase, []).append({
+            'objeto': partido,
+            'prediccion': predicciones_usuario.get(partido.id),
+        })
+
+    fases_fixture = [
+        {
+            'codigo': fase,
+            'nombre': dict(Partido.FASE_CHOICES)[fase],
+            'partidos': partidos_por_fase.get(fase, []),
+        }
+        for fase in Partido.FASE_ORDEN
+        if partidos_por_fase.get(fase)
     ]
 
     return render(request, 'prode/prode.html', {
-        'partidos_con_prediccion': partidos_con_prediccion,
+        'fases_fixture': fases_fixture,
     })
 
 

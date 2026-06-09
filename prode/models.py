@@ -19,12 +19,15 @@ class Partido(models.Model):
 
     FASE_CHOICES = [
         ('GRUPOS', 'Fase de Grupos'),
-        ('OCTAVOS', 'Octavos de Final'),
-        ('CUARTOS', 'Cuartos de Final'),
+        ('DIECISEISAVOS', '16avos de Final'),
+        ('OCTAVOS', '8avos de Final'),
+        ('CUARTOS', '4tos de Final'),
         ('SEMI', 'Semifinal'),
         ('TERCERO', 'Tercer Puesto'),
         ('FINAL', 'Final'),
     ]
+
+    FASE_ORDEN = [c[0] for c in FASE_CHOICES]
 
     # Identificador del partido en API-Football (clave de sincronización).
     api_id = models.IntegerField(unique=True, db_index=True)

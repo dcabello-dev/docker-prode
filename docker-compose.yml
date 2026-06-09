@@ -57,7 +57,8 @@ services:
       # Conexión a PostgreSQL armada desde las variables de la base (un solo
       # lugar de verdad). El host es el nombre del contenedor de la DB.
       DATABASE_URL: postgres://${POSTGRES_USER:-prode}:${POSTGRES_PASSWORD:?Defini POSTGRES_PASSWORD en .env}@prode-postgres:5432/${POSTGRES_DB:-prode}
-      # SofaScore (APIDOJO) vía RapidAPI para sincronizar fixture y resultados
+      # SofaScore: RapidAPI (APIDOJO) o API directa (auto = RapidAPI + fallback)
+      SOFASCORE_BACKEND: ${SOFASCORE_BACKEND:-auto}
       RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
       RAPIDAPI_HOST: ${RAPIDAPI_HOST:-sofascore.p.rapidapi.com}
       SOFASCORE_SPORT: ${SOFASCORE_SPORT:-football}
