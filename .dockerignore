@@ -1,0 +1,24 @@
+.git
+.gitignore
+*.md
+
+# No copiar la base local ni secretos a la imagen
+db.sqlite3
+*.sqlite3
+.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+
+# Estáticos recolectados (se regeneran en el contenedor)
+staticfiles/
+
+# IDE
+.vscode/
+.idea/

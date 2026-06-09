@@ -2,6 +2,9 @@
 db.sqlite3
 *.sqlite3
 
+# Estáticos recolectados (se generan en el build/arranque)
+staticfiles/
+
 # Claves privadas
 clave-prode.pem
 *.pem

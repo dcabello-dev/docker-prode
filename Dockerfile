@@ -1,23 +1,32 @@
-# Usamos una imagen oficial de Python liviana y compatible con ARM (Raspberry Pi)
+# Imagen oficial de Python liviana (compatible con ARM y x86)
 FROM python:3.12-slim
 
-# Evita que Python escriba archivos .pyc en el disco
+# Evita .pyc y activa logs sin buffer (ideal para ver logs en Docker)
 ENV PYTHONDONTWRITEBYTECODE=1
-# Evita que Python guarde en buffer las salidas de la consola (ideal para ver logs en Docker)
 ENV PYTHONUNBUFFERED=1
 
-# Seteamos el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Instalamos las dependencias del sistema necesarias por si acaso
+# Dependencias del sistema necesarias para compilar algunas libs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiamos e instalamos los requerimientos primero (para aprovechar la caché de capas de Docker)
+# Instalamos los requerimientos primero (aprovecha la caché de capas de Docker)
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# El comando por defecto mantendrá el servidor de desarrollo corriendo
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Copiamos el resto del código
+COPY . /app/
+
+# Carpeta para la base SQLite persistida en un volumen
+RUN mkdir -p /app/data && chmod +x /app/docker/entrypoint.sh
+
+EXPOSE 8000
+
+# El entrypoint corre migraciones + collectstatic y luego ejecuta el CMD
+ENTRYPOINT ["/app/docker/entrypoint.sh"]
+
+# Servidor de producción: gunicorn (3 workers)
+CMD ["gunicorn", "ComunidadSoft.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
