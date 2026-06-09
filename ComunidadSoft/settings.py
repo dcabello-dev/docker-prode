@@ -45,13 +45,15 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
+    # 'prode' va primero para que sus templates (p. ej. registration/) tengan
+    # prioridad sobre los que trae django.contrib.admin.
+    'prode',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'prode',
 ]
 
 MIDDLEWARE = [
