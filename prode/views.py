@@ -1,10 +1,41 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from .models import Partido, Prediccion
 
 User = get_user_model()
+
+
+def fases_a_mostrar(partidos_por_fase):
+    """Devuelve las fases visibles: la instancia actual y las ya jugadas.
+
+    Una fase eliminatoria recién se revela cuando la anterior terminó (todos
+    sus partidos ya se jugaron). Así no se muestran cruces con equipos sin
+    definir (placeholders) antes de tiempo.
+    """
+    ahora = timezone.now()
+    nombres = dict(Partido.FASE_CHOICES)
+    visibles = []
+
+    for fase in Partido.FASE_ORDEN:
+        items = partidos_por_fase.get(fase)
+        if not items:
+            continue
+
+        visibles.append({
+            'codigo': fase,
+            'nombre': nombres[fase],
+            'partidos': items,
+        })
+
+        # Si esta fase todavía no terminó, no revelamos las próximas.
+        ultima_fecha = max(it['objeto'].fecha_hora for it in items)
+        if ultima_fecha >= ahora:
+            break
+
+    return visibles
 
 
 @login_required
@@ -44,15 +75,7 @@ def panel_prode(request):
             'prediccion': predicciones_usuario.get(partido.id),
         })
 
-    fases_fixture = [
-        {
-            'codigo': fase,
-            'nombre': dict(Partido.FASE_CHOICES)[fase],
-            'partidos': partidos_por_fase.get(fase, []),
-        }
-        for fase in Partido.FASE_ORDEN
-        if partidos_por_fase.get(fase)
-    ]
+    fases_fixture = fases_a_mostrar(partidos_por_fase)
 
     return render(request, 'prode/prode.html', {
         'fases_fixture': fases_fixture,
