@@ -1,35 +1,69 @@
-# ============================================================================
-# Prode Mundial Institucional (IES 9-018 Malargüe) — servidor personal.
+# ==============================================================================
+# Prode Mundial Institucional (IES 9-018 Malargüe) — Stack de PRODUCCIÓN.
+# ------------------------------------------------------------------------------
+# Topología:
+#   - cloudflared (vive en su propia stack) enruta el dominio público
+#       prode.ies9018malargue.edu.ar -> prode_app:8000
+#     a través de la red externa compartida `lyntrix_network`.
 #
-# Este stack NO levanta su propia base: usa la PostgreSQL compartida
-# (db_central) y la red externa compartida (shared_network) del servidor.
+#   - PostgreSQL vive en una red privada interna (`prode_internal_network`)
+#     a la que cloudflared NO tiene acceso: solo el contenedor web la alcanza.
 #
-# Requisitos previos en el servidor (una sola vez):
-#   1) Que exista la red compartida:
-#        docker network create shared_network   # si no existe
-#   2) Que en db_central exista la base y el usuario del Prode:
-#        docker exec -it db_central psql -U postgres -c \
-#          "CREATE USER prode WITH PASSWORD 'TU_PASS';"
-#        docker exec -it db_central psql -U postgres -c \
-#          "CREATE DATABASE prode OWNER prode;"
+#   - Ningún servicio publica puertos al host: el tráfico público entra por el
+#     Cloudflare Tunnel y el privado se resuelve por DNS interno de Docker.
+#
+# Requisito previo (una sola vez, antes del primer arranque):
+#   docker network create lyntrix_network
 #
 # Levantar:
 #   docker compose up -d --build
 #
-# Cloudflare Tunnel: apuntá el túnel al puerto publicado 8010 del host.
-# Recordá setear el dominio en DJANGO_ALLOWED_HOSTS y DJANGO_CSRF_TRUSTED_ORIGINS.
-#
 # Crear usuarios (después de levantar):
 #   docker compose exec web python manage.py crear_usuario -u admin -p CLAVE -t admin
-# ============================================================================
+# ==============================================================================
+
 services:
+
+  # ----------------------------------------------------------------------------
+  # PostgreSQL - persistencia del Prode.
+  # No está en lyntrix_network: solo el contenedor web lo alcanza por la
+  # red interna privada.
+  # ----------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: prode-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-prode}
+      POSTGRES_USER: ${POSTGRES_USER:-prode}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defini POSTGRES_PASSWORD en .env}
+    volumes:
+      - prode_postgres_data:/var/lib/postgresql/data
+    networks:
+      - prode_internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prode} -d ${POSTGRES_DB:-prode}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ----------------------------------------------------------------------------
+  # Web Django (gunicorn) - app del Prode.
+  # Vive en dos redes:
+  #   - prode_internal_network: para hablar con Postgres.
+  #   - lyntrix_network:        para que cloudflared lo encuentre como
+  #                             `prode_app:8000`.
+  # El entrypoint corre migrate + collectstatic antes de arrancar gunicorn.
+  # ----------------------------------------------------------------------------
   web:
     build:
       context: .
       dockerfile: Dockerfile
     image: prode-mundial:latest
     container_name: prode_app
-    hostname: prode_app
     restart: unless-stopped
     env_file:
       - .env
@@ -40,8 +74,8 @@ services:
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-prode.ies9018malargue.edu.ar,localhost,127.0.0.1}
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://prode.ies9018malargue.edu.ar}
 
-      # Base compartida db_central (en la red shared_network).
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db_central:5432/${DB_NAME}
+      # Conexión al Postgres del stack (resuelto por DNS interno de Docker).
+      DATABASE_URL: postgres://${POSTGRES_USER:-prode}:${POSTGRES_PASSWORD:?Defini POSTGRES_PASSWORD en .env}@prode-postgres:5432/${POSTGRES_DB:-prode}
 
       # Detrás de Cloudflare (HTTPS lo termina el túnel/proxy).
       SECURE_SSL_REDIRECT: "False"
@@ -54,19 +88,16 @@ services:
       RAPIDAPI_HOST: ${RAPIDAPI_HOST:-sofascore.p.rapidapi.com}
       SOFASCORE_SPORT: ${SOFASCORE_SPORT:-football}
       SOFASCORE_TOURNAMENT_ID: ${SOFASCORE_TOURNAMENT_ID:-0}
-
     volumes:
       # Estáticos recolectados (los sirve WhiteNoise) y media persistente.
       - ./staticfiles:/app/staticfiles
       - ./media:/app/media
-
-    ports:
-      # Publicado en 8010 del host para el Cloudflare Tunnel.
-      - "8010:8000"
-
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
-      - shared_network
-
+      - prode_internal_network
+      - lyntrix_network
     healthcheck:
       # Sin depender de curl: usa Python (ya está en la imagen).
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/accounts/login/').status==200 else 1)\""]
@@ -75,7 +106,29 @@ services:
       retries: 3
       start_period: 40s
 
+# ==============================================================================
+# Redes
+#
+#   prode_internal_network  Red privada local del stack: Postgres + Web.
+#                           Aislada de internet y de cloudflared.
+#
+#   lyntrix_network         Red externa compartida con cloudflared y otros
+#                           servicios. Se DEBE crear previamente al primer
+#                           arranque con:
+#                             docker network create lyntrix_network
+# ==============================================================================
 networks:
-  shared_network:
+  prode_internal_network:
+    driver: bridge
+  lyntrix_network:
     external: true
-    name: shared_network
+
+# ==============================================================================
+# Volúmenes
+#
+#   prode_postgres_data     Persistencia del directorio de datos de Postgres
+#                           en el host. NO eliminar entre upgrades.
+# ==============================================================================
+volumes:
+  prode_postgres_data:
+    driver: local
