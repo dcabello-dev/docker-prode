@@ -29,8 +29,8 @@ class Partido(models.Model):
     # Identificador del partido en API-Football (clave de sincronización).
     api_id = models.IntegerField(unique=True, db_index=True)
 
-    equipo_local = models.CharField(max_length=80)
-    equipo_visitante = models.CharField(max_length=80)
+    equipo_local = models.CharField(max_length=150)
+    equipo_visitante = models.CharField(max_length=150)
 
     # Presentación de banderas: código ISO (flagcdn) y/o logo de la API.
     codigo_local = models.CharField(max_length=2, blank=True)
@@ -41,9 +41,10 @@ class Partido(models.Model):
     goles_local = models.IntegerField(null=True, blank=True)
     goles_visitante = models.IntegerField(null=True, blank=True)
 
-    fecha_hora = models.DateTimeField()
+    # Fecha UTC convertida desde el timestamp de SofaScore.
+    fecha_hora = models.DateTimeField(db_index=True)
     estado = models.CharField(
-        max_length=12, choices=ESTADO_CHOICES,
+        max_length=20, choices=ESTADO_CHOICES,
         default=ESTADO_PENDIENTE, db_index=True,
     )
 

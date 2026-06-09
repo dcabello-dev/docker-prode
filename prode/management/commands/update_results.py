@@ -1,81 +1,75 @@
-"""Actualiza resultados de partidos ya jugados y dispara el cálculo de puntos.
+"""Actualiza resultados de partidos jugados y dispara el cálculo de puntos.
 
-Estrategia de ahorro: sólo llama a la API si hay partidos vencidos y todavía
-PENDIENTE, y lo hace con un único request filtrando por fecha.
+Estrategia de ahorro de cuota: sólo llama a la API si hay partidos vencidos y
+todavía PENDIENTE, y hace un único request por cada día involucrado.
 
 Uso (cron, p. ej. cada 30 min durante el torneo):
     python manage.py update_results
-    python manage.py update_results --fecha 2026-06-14
 """
 
-from django.conf import settings
+from __future__ import annotations
+
+from datetime import timezone as dt_timezone
+
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from ...api_football import APIFootballError, get_fixtures
 from ...models import Partido
-from ...scoring import procesar_partido
-from ...sync import ESTADOS_FINALIZADOS
+from ...services import calcular_puntos_prode
+from ...sofascore import SofaScoreError, list_by_date
+from ...sync import evento_finalizado
 
 
 class Command(BaseCommand):
     help = 'Actualiza resultados de partidos jugados y calcula los puntos.'
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--fecha', default=None,
-            help='Fecha a consultar en formato YYYY-MM-DD (default: hoy).',
-        )
-
     def handle(self, *args, **options):
         ahora = timezone.now()
-        pendientes = Partido.objects.filter(
-            fecha_hora__lt=ahora, estado=Partido.ESTADO_PENDIENTE,
+        pendientes = list(
+            Partido.objects.filter(
+                fecha_hora__lt=ahora, estado=Partido.ESTADO_PENDIENTE,
+            )
         )
 
-        if not pendientes.exists():
+        if not pendientes:
             self.stdout.write(
                 'No hay partidos pendientes. Sin llamadas a la API.'
             )
             return
 
-        fecha = options['fecha'] or timezone.localdate().isoformat()
-        params = {
-            'league': settings.API_FOOTBALL_LEAGUE_ID,
-            'season': settings.API_FOOTBALL_SEASON,
-            'date': fecha,
-        }
-
-        try:
-            fixtures = get_fixtures(params)
-        except APIFootballError as exc:
-            raise CommandError(str(exc))
-
-        # Indexamos la respuesta por api_id para cruzarla con los pendientes.
-        por_api_id = {fx['fixture']['id']: fx for fx in fixtures}
+        # Indexamos por api_id y agrupamos las fechas (UTC) a consultar.
+        pend_por_api = {p.api_id: p for p in pendientes}
+        fechas = sorted({
+            p.fecha_hora.astimezone(dt_timezone.utc).date().isoformat()
+            for p in pendientes
+        })
 
         finalizados = 0
         predicciones = 0
-        for partido in pendientes:
-            fixture = por_api_id.get(partido.api_id)
-            if not fixture:
-                continue
+        for fecha in fechas:
+            try:
+                eventos = list_by_date(fecha)
+            except SofaScoreError as exc:
+                raise CommandError(str(exc))
 
-            short = fixture['fixture']['status']['short']
-            if short not in ESTADOS_FINALIZADOS:
-                continue
+            for event in eventos:
+                partido = pend_por_api.get(event.get('id'))
+                if partido is None:
+                    continue
+                if not evento_finalizado(event.get('status', {}) or {}):
+                    continue
 
-            goals = fixture.get('goals', {})
-            partido.goles_local = goals.get('home')
-            partido.goles_visitante = goals.get('away')
-            partido.estado = Partido.ESTADO_FINALIZADO
-            partido.save(update_fields=[
-                'goles_local', 'goles_visitante', 'estado',
-            ])
+                home_score = event.get('homeScore', {}) or {}
+                away_score = event.get('awayScore', {}) or {}
+                partido.goles_local = home_score.get('current')
+                partido.goles_visitante = away_score.get('current')
+                partido.estado = Partido.ESTADO_FINALIZADO
+                partido.save(update_fields=[
+                    'goles_local', 'goles_visitante', 'estado',
+                ])
 
-            # Calcula los puntos de forma transaccional inmediatamente.
-            predicciones += procesar_partido(partido)
-            finalizados += 1
+                predicciones += calcular_puntos_prode(partido.id)
+                finalizados += 1
 
         self.stdout.write(self.style.SUCCESS(
             f'Partidos finalizados: {finalizados}. '

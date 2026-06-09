@@ -1,56 +1,64 @@
-"""Sincroniza el fixture completo del torneo desde API-Football.
+"""Sincroniza el fixture de un día desde SofaScore (APIDOJO / RapidAPI).
 
-Pensado para correr una vez por semana (cron). Trae todos los partidos de la
-liga/temporada configuradas y hace update_or_create por api_id.
+Hace un request a list-by-date para la fecha indicada, filtra los eventos del
+torneo configurado y hace update_or_create por api_id.
 
 Uso:
-    python manage.py fetch_fixture
-    python manage.py fetch_fixture --league 1 --season 2026
+    python manage.py fetch_fixture                # fecha de hoy
+    python manage.py fetch_fixture --fecha 2026-06-14 --tournament 16
 """
+
+from __future__ import annotations
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
-from ...api_football import APIFootballError, get_fixtures
-from ...sync import sync_partido
+from ...sofascore import SofaScoreError, list_by_date
+from ...sync import sync_evento
 
 
 class Command(BaseCommand):
-    help = 'Trae el fixture completo desde API-Football y lo sincroniza.'
+    help = 'Trae el fixture de una fecha desde SofaScore y lo sincroniza.'
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--league', type=int, default=settings.API_FOOTBALL_LEAGUE_ID,
-            help='ID de liga (default: API_FOOTBALL_LEAGUE_ID).',
+            '--fecha', default=None,
+            help='Fecha a consultar en formato YYYY-MM-DD (default: hoy).',
         )
         parser.add_argument(
-            '--season', type=int, default=settings.API_FOOTBALL_SEASON,
-            help='Temporada (año). Default: API_FOOTBALL_SEASON.',
+            '--tournament', type=int,
+            default=settings.SOFASCORE_TOURNAMENT_ID,
+            help='TOURNAMENT_ID de SofaScore (default del entorno).',
         )
 
     def handle(self, *args, **options):
-        params = {'league': options['league'], 'season': options['season']}
+        fecha = options['fecha'] or timezone.localdate().isoformat()
+        tournament_id = options['tournament']
+
+        if not tournament_id:
+            raise CommandError(
+                'Falta el TOURNAMENT_ID. Pasá --tournament o definí '
+                'SOFASCORE_TOURNAMENT_ID en el .env.'
+            )
 
         try:
-            fixtures = get_fixtures(params)
-        except APIFootballError as exc:
+            eventos = list_by_date(fecha)
+        except SofaScoreError as exc:
             raise CommandError(str(exc))
 
-        if not fixtures:
-            self.stdout.write(self.style.WARNING(
-                'La API no devolvió partidos para esa liga/temporada.'
-            ))
-            return
-
         creados = actualizados = 0
-        for fixture in fixtures:
-            _, creado = sync_partido(fixture)
+        for event in eventos:
+            torneo = event.get('tournament') or {}
+            if torneo.get('id') != tournament_id:
+                continue
+            _, creado = sync_evento(event)
             if creado:
                 creados += 1
             else:
                 actualizados += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f'Fixture sincronizado: {creados} creados, '
-            f'{actualizados} actualizados ({len(fixtures)} en total).'
+            f'Fixture del {fecha}: {creados} creados, '
+            f'{actualizados} actualizados.'
         ))

@@ -161,13 +161,10 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 
-# API-Football (RapidAPI) - sincronización del fixture y resultados.
-# https://www.api-football.com/documentation-v3
-API_FOOTBALL_KEY = os.environ.get('API_FOOTBALL_KEY', '')
-API_FOOTBALL_HOST = os.environ.get(
-    'API_FOOTBALL_HOST', 'api-football-v1.p.rapidapi.com'
-)
-# League 1 = FIFA World Cup. Season en formato de año (ej. 2026).
-API_FOOTBALL_LEAGUE_ID = int(os.environ.get('API_FOOTBALL_LEAGUE_ID', '1'))
-API_FOOTBALL_SEASON = int(os.environ.get('API_FOOTBALL_SEASON', '2026'))
-API_FOOTBALL_TIMEOUT = int(os.environ.get('API_FOOTBALL_TIMEOUT', '30'))
+# SofaScore (APIDOJO) vía RapidAPI - sincronización de fixture y resultados.
+RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
+RAPIDAPI_HOST = os.environ.get('RAPIDAPI_HOST', 'sofascore.p.rapidapi.com')
+RAPIDAPI_TIMEOUT = int(os.environ.get('RAPIDAPI_TIMEOUT', '30'))
+# Deporte y torneo de SofaScore a sincronizar (TOURNAMENT_ID del Mundial).
+SOFASCORE_SPORT = os.environ.get('SOFASCORE_SPORT', 'football')
+SOFASCORE_TOURNAMENT_ID = int(os.environ.get('SOFASCORE_TOURNAMENT_ID', '0'))

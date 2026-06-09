@@ -17,7 +17,7 @@ Aplicación web donde los usuarios (alumnos) inician sesión, cargan sus
 **predicciones** de los resultados de cada partido del Mundial y compiten en un
 **ranking institucional** según los puntos que acumulan.
 
-### Reglas de puntuación (`prode/scoring.py`)
+### Reglas de puntuación (`prode/services.py`)
 
 | Acierto | Puntos |
 |--------|--------|
@@ -50,11 +50,11 @@ Aplicación web donde los usuarios (alumnos) inician sesión, cargan sus
 | Driver DB | psycopg (binary) | 3.3.4 |
 | Config DB | dj-database-url (`DATABASE_URL`) | 3.1.2 |
 | Cliente HTTP | requests | 2.34.2 |
-| Datos deportivos | API-Football (RapidAPI) | v3 |
+| Datos deportivos | SofaScore (APIDOJO) vía RapidAPI | `matches/v2/list-by-date` |
 | Frontend | Templates Django + Tailwind CSS (CDN) | — |
 | Auth | `django.contrib.auth` (nativo) | — |
 | Infra | Docker + Docker Compose | — |
-| Logos/Banderas | API-Football (logo) con fallback a `flagcdn.com` | — |
+| Logos/Banderas | `flagcdn.com` / logo opcional (fallback al nombre) | — |
 
 ---
 
@@ -101,9 +101,9 @@ docker-prode/
 │   ├── models.py             # Partido, Prediccion, PerfilUsuario
 │   ├── views.py              # panel_prode, ranking_institucional
 │   ├── admin.py              # Admin + acción "Recalcular puntos"
-│   ├── api_football.py       # Cliente HTTP de API-Football (RapidAPI)
-│   ├── sync.py               # Mapeo y update_or_create de fixtures
-│   ├── scoring.py            # Cálculo de puntos (transaccional)
+│   ├── sofascore.py          # Cliente HTTP de SofaScore (RapidAPI)
+│   ├── sync.py               # Mapeo de eventos y update_or_create
+│   ├── services.py           # calcular_puntos_prode (transaccional)
 │   ├── signals.py            # Crea PerfilUsuario al alta de usuario
 │   ├── urls.py
 │   ├── migrations/
@@ -145,10 +145,10 @@ Se definen en un archivo `.env` (no versionado). Plantilla en `.env.example`.
 | `POSTGRES_DB` | Nombre de la base (contenedor `db` + arma `DATABASE_URL`) | `prode` |
 | `POSTGRES_USER` | Usuario de la base | `prode` |
 | `POSTGRES_PASSWORD` | Contraseña de la base (**obligatoria**) | — |
-| `API_FOOTBALL_KEY` | API key de RapidAPI (**obligatoria** para sincronizar) | vacío |
-| `API_FOOTBALL_HOST` | Host de la API | `api-football-v1.p.rapidapi.com` |
-| `API_FOOTBALL_LEAGUE_ID` | ID de liga (1 = Mundial FIFA) | `1` |
-| `API_FOOTBALL_SEASON` | Temporada (año) | `2026` |
+| `RAPIDAPI_KEY` | API key de RapidAPI (**obligatoria** para sincronizar) | vacío |
+| `RAPIDAPI_HOST` | Host de SofaScore en RapidAPI | `sofascore.p.rapidapi.com` |
+| `SOFASCORE_SPORT` | Deporte a consultar | `football` |
+| `SOFASCORE_TOURNAMENT_ID` | ID del torneo en SofaScore (**obligatorio**) | `0` |
 | `DJANGO_ADMIN_USER` | Usuario admin para `crear_admin` | `admin` |
 | `DJANGO_ADMIN_PASSWORD` | Contraseña admin (**obligatoria** para `crear_admin`) | — |
 | `DJANGO_ADMIN_EMAIL` | Email admin | vacío |
@@ -271,6 +271,29 @@ Automatización del fixture/resultados y rediseño del modelo de datos:
   `POSTGRES_*`) y las variables `API_FOOTBALL_*`.
 - **Migraciones**: `0001_initial` regenerada (sin datos que preservar).
 
+### `__HASH_SOFASCORE__` — Cambiar el proveedor de datos a SofaScore (APIDOJO)
+Se reemplaza API-Football por SofaScore (APIDOJO) vía RapidAPI:
+
+- **`settings.py`**: config `RAPIDAPI_*` y `SOFASCORE_*` (en lugar de
+  `API_FOOTBALL_*`). La base de datos sigue con `dj-database-url`.
+- **`sofascore.py`** (nuevo, reemplaza `api_football.py`): cliente del endpoint
+  `matches/v2/list-by-date` con headers `X-RapidAPI-Key` / `X-RapidAPI-Host`.
+  Normaliza la respuesta (`events` o `sportItem.tournaments[].events`).
+- **`services.py`** (nuevo, reemplaza `scoring.py`): `calcular_puntos_prode(
+  partido_id)` con `transaction.atomic`, `select_related('usuario__perfil')`
+  (mitiga N+1), `select_for_update(of=('self',))` e impacto en el perfil con
+  `F()`. Regla 3/1/0. Idempotente; `forzar=True` para recálculo.
+- **`sync.py`**: mapeo de eventos de SofaScore (estado por `status.type ==
+  'finished'` / `code == 100`, `startTimestamp` → datetime UTC, goles por
+  `homeScore/awayScore.current`).
+- **Comandos**: `fetch_fixture` consulta una fecha y filtra por
+  `tournament.id == TOURNAMENT_ID`; `update_results` agrupa los pendientes
+  vencidos por día y hace un único request por día.
+- **`models.py`**: `equipo_*` a `max_length=150`, `estado` a `max_length=20`,
+  índice en `fecha_hora`. Migración `0002`.
+- **`docker-compose.yml` / `.env.example`**: variables `RAPIDAPI_*` y
+  `SOFASCORE_*`.
+
 ---
 
 ## 7. Guía de despliegue (servidor del IES)
@@ -317,8 +340,8 @@ docker compose logs -f web
 docker compose exec web python manage.py crear_admin
 ./crear-admin.sh
 
-# Sincronizar el fixture completo desde API-Football (semanal)
-docker compose exec web python manage.py fetch_fixture
+# Sincronizar el fixture de una fecha desde SofaScore (filtra por torneo)
+docker compose exec web python manage.py fetch_fixture --fecha 2026-06-14
 
 # Actualizar resultados de partidos jugados y calcular puntos (cron frecuente)
 docker compose exec web python manage.py update_results

@@ -1,13 +1,13 @@
 from django.contrib import admin
 
 from .models import PerfilUsuario, Partido, Prediccion
-from .scoring import procesar_partido
+from .services import calcular_puntos_prode
 
 
 @admin.action(description='Recalcular puntos de los partidos seleccionados')
 def recalcular_puntos(modeladmin, request, queryset):
     for partido in queryset:
-        procesar_partido(partido, forzar=True)
+        calcular_puntos_prode(partido.id, forzar=True)
 
 
 @admin.register(Partido)
