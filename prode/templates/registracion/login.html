@@ -1,0 +1,55 @@
+{% extends 'prode/base.html' %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-[60vh]">
+    <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-2xl max-w-md w-full">
+        <h2 class="text-2xl font-extrabold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+            Ingreso al Prode Institucional
+        </h2>
+
+        {% if form.errors %}
+            <div class="mb-4 p-3 bg-red-950/60 border border-red-800 rounded-lg text-red-300 text-sm">
+                Usuario o contraseña incorrectos. Por favor, intentá de nuevo.
+            </div>
+        {% endif %}
+
+        <form method="POST" class="space-y-4 text-gray-300">
+            {% csrf_token %}
+            
+            <div>
+                <label for="id_username" class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Usuario / Legajo</label>
+                <input type="text" name="username" id="id_username" required
+                       class="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label for="id_password" class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Contraseña</label>
+                <input type="password" name="password" id="id_password" required
+                       class="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <button type="submit" 
+                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                Iniciar Sesión
+            </button>
+            <form method="post">
+    {% csrf_token %}
+    
+    
+    <div style="margin-top: 15px;">
+        <a href="{% url 'password_reset' %}" style="color: blue; text-decoration: underline;">
+            ¿Olvidaste tu contraseña?
+        </a>
+    </div>
+</form>
+        </form>
+
+        <p class="text-xs text-center text-gray-500 mt-6">
+          
+
+             <br>
+             "Plataforma con fines solidarios y académicos. Al ingresar, aceptás los términos de uso firmados al inscribirte.
+        </p>
+    </div>
+</div>
+{% endblock %}

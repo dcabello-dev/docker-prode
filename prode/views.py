@@ -90,3 +90,6 @@ def ranking_institucional(request):
         .order_by('-perfil__puntos_totales', 'username')
     )
     return render(request, 'prode/ranking.html', {'usuarios': usuarios})
+
+def acerca_de(request):
+    return render(request, 'prode/acerca_de.html')

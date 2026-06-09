@@ -181,3 +181,18 @@ SOFASCORE_FASE_FECHAS = {
     'TERCERO': ('2026-07-18', '2026-07-18'),
     'FINAL': ('2026-07-19', '2026-07-19'),
 }
+
+# Configuración del backend de correo (para el reseteo de contraseña).
+# Las credenciales se leen de variables de entorno: NO hardcodear secretos
+# en el repo. Por defecto usa la consola (imprime el mail en los logs), así
+# el reseteo no rompe si todavía no configuraste SMTP en el .env.
+EMAIL_BACKEND = os.environ.get(
+    'DJANGO_EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('1', 'true', 'yes', 'on')
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() in ('1', 'true', 'yes', 'on')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-reply@localhost')
